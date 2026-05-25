@@ -9,6 +9,16 @@ description: A股技术面分析 Skill，基于日线数据计算趋势/动量/�
 python scripts/technical_analyzer.py --code 300308 --output /tmp/300308_tech.json
 ```
 
+### 参数
+
+| 参数 | 说明 |
+|------|------|
+| `--code` | 股票代码（自动获取快照） |
+| `--snapshot` | 已有快照 JSON 路径（跳过数据获取） |
+| `--output` | 输出文件路径 |
+| `--verbose` | 显示详细日志 |
+| `--debug` | 显示调试日志 |
+
 输出：
 - 趋势状态（多头/震荡/空头）
 - 指标信号（MACD、RSI、布林）

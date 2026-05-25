@@ -15,14 +15,26 @@
 ## 使用方式
 
 ```bash
-python scripts/workflow.py <股票代码> [--output result.json] [--pretty]
+python scripts/workflow.py <股票代码> [--output result.json] [--pretty] [--refresh-data]
 ```
+
+### 参数
+
+| 参数 | 说明 |
+|------|------|
+| `code` | 股票代码（位置参数，必填） |
+| `--output` | 输出 JSON 文件路径 |
+| `--pretty` | 输出完整 markdown 报告 |
+| `--refresh-data` | 强制刷新数据源缓存 |
+| `--verbose` | 显示详细日志 |
+| `--debug` | 显示调试日志 |
 
 示例：
 
 ```bash
 python scripts/workflow.py 300308 --pretty
 python scripts/workflow.py 300308 --output /tmp/300308_full_report.json
+python scripts/workflow.py 300308 --refresh-data --debug
 ```
 
 ## 输出内容

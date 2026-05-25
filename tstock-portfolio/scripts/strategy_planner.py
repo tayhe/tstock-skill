@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
+from tstock.logging_config import setup_logging
+from tstock.constants import (
+    SCORE_STRONG, SCORE_NEUTRAL, SCORE_WEAK,
+    WEIGHT_FUNDAMENTAL, WEIGHT_TECHNICAL, WEIGHT_RISK,
+)
 
 
 def load_json(path):
@@ -16,16 +26,19 @@ def plan(code, f, t, r):
     # 技术面映射分
     t_score = 60 if trend == '多头' else (40 if trend == '空头' else 50)
 
-    # 综合：基本面40 + 技术面25 + 风险35(反向)
-    total = int(f_score * 0.4 + t_score * 0.25 + (100 - r_score) * 0.35)
+    total = int(
+        f_score * WEIGHT_FUNDAMENTAL
+        + t_score * WEIGHT_TECHNICAL
+        + (100 - r_score) * WEIGHT_RISK
+    )
 
-    if total >= 70:
+    if total >= SCORE_STRONG:
         action = '买入'
         position = '20%-35%'
-    elif total >= 55:
+    elif total >= SCORE_NEUTRAL:
         action = '持有'
         position = '10%-25%'
-    elif total >= 40:
+    elif total >= SCORE_WEAK:
         action = '观望'
         position = '0%-10%'
     else:
@@ -40,7 +53,7 @@ def plan(code, f, t, r):
     return {
         'code': code,
         'action': action,
-        'confidence': '高' if total >= 70 else ('中' if total >= 55 else '低'),
+        'confidence': '高' if total >= SCORE_STRONG else ('中' if total >= SCORE_NEUTRAL else '低'),
         'score': total,
         'position_recommendation': position,
         'stop_ref': t.get('stop_ref'),
@@ -57,7 +70,10 @@ def main():
     p.add_argument('--technical', required=True)
     p.add_argument('--risk', required=True)
     p.add_argument('--output')
+    p.add_argument('--verbose', action='store_true', help='显示详细日志')
+    p.add_argument('--debug', action='store_true', help='显示调试日志')
     args = p.parse_args()
+    setup_logging("DEBUG" if args.debug else ("INFO" if args.verbose else "WARNING"))
 
     f = load_json(args.fundamental)
     t = load_json(args.technical)

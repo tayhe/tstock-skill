@@ -1,43 +1,24 @@
 #!/usr/bin/env python3
 import argparse
 import json
-import os
-import subprocess
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-def _safe(v):
-    try:
-        if v is None:
-            return None
-        return float(v)
-    except Exception:
-        return None
-
-
-def get_snapshot(code=None, snapshot=None):
-    if snapshot:
-        with open(snapshot, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    # 相对于脚本位置动态推导项目根路径
-    _ws_root = Path(__file__).resolve().parent.parent.parent
-    script = _ws_root / "tstock-data-source/scripts/data_source.py"
-    tmp = f'/tmp/{code}_risk_snapshot.json'
-    subprocess.run(['python3', script, '--code', code, '--data-type', 'all', '--output', tmp], check=True)
-    with open(tmp, 'r', encoding='utf-8') as f:
-        return json.load(f)
+from tstock.logging_config import setup_logging
+from tstock.utils import safe_float
+from tstock.snapshot import load_snapshot
+from tstock.constants import (
+    RISK_PE_HIGH, RISK_PE_MED, RISK_PB_HIGH, RISK_PE_PCT_HIGH,
+    RISK_DEBT_HIGH, RISK_DEBT_MED, RISK_CURRENT_LOW,
+    RISK_MCAP_SMALL, RISK_MCAP_MID,
+    RISK_AMPLITUDE_HIGH, RISK_AMPLITUDE_MED, RISK_PRICE_CHANGE_HIGH,
+    HIGH_RISK_INDUSTRIES, RISK_LOW_THRESHOLD, RISK_MED_THRESHOLD,
+)
 
 
-def _load_json(path):
-    if not path:
-        return None
-    if not os.path.exists(path):
-        return None
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-
-def evaluate(snapshot, fundamental: dict | None = None):
+def evaluate(snapshot, fundamental=None):
     basic = snapshot.get('basic', {})
     market = snapshot.get('market', {})
     valuation = snapshot.get('valuation', {})
@@ -45,61 +26,60 @@ def evaluate(snapshot, fundamental: dict | None = None):
 
     factors = []
 
-    pe = _safe(basic.get('pe_ttm'))
-    pb = _safe(basic.get('pb'))
-    pe_pct = _safe(valuation.get('pe_ttm_percentile'))
+    pe = safe_float(basic.get('pe_ttm'))
+    pb = safe_float(basic.get('pb'))
+    pe_pct = safe_float(valuation.get('pe_ttm_percentile'))
     val_score = 30
-    if pe and pe > 60:
+    if pe and pe > RISK_PE_HIGH:
         val_score += 30
-    elif pe and pe > 40:
+    elif pe and pe > RISK_PE_MED:
         val_score += 15
-    if pb and pb > 8:
+    if pb and pb > RISK_PB_HIGH:
         val_score += 15
-    if pe_pct and pe_pct > 85:
+    if pe_pct and pe_pct > RISK_PE_PCT_HIGH:
         val_score += 10
     factors.append({'name': '估值风险', 'score': min(100, val_score)})
 
     bal = baostock.get('balance') or {}
-    debt = _safe(bal.get('liabilityToAsset'))
-    curr = _safe(bal.get('currentRatio'))
+    debt = safe_float(bal.get('liabilityToAsset'))
+    curr = safe_float(bal.get('currentRatio'))
     fin_score = 30
-    if debt and debt > 0.7:
+    if debt and debt > RISK_DEBT_HIGH:
         fin_score += 25
-    elif debt and debt > 0.6:
+    elif debt and debt > RISK_DEBT_MED:
         fin_score += 10
-    if curr and curr < 1.0:
+    if curr and curr < RISK_CURRENT_LOW:
         fin_score += 15
     factors.append({'name': '财务风险', 'score': min(100, fin_score)})
 
-    pchg = _safe(market.get('price_change_pct'))
-    hi = _safe(market.get('high_60d'))
-    lo = _safe(market.get('low_60d'))
+    pchg = safe_float(market.get('price_change_pct'))
+    hi = safe_float(market.get('high_60d'))
+    lo = safe_float(market.get('low_60d'))
     vol_score = 30
     if hi and lo and lo > 0:
         amp = (hi - lo) / lo
-        if amp > 0.5:
+        if amp > RISK_AMPLITUDE_HIGH:
             vol_score += 25
-        elif amp > 0.3:
+        elif amp > RISK_AMPLITUDE_MED:
             vol_score += 12
-    if pchg and abs(pchg) > 7:
+    if pchg and abs(pchg) > RISK_PRICE_CHANGE_HIGH:
         vol_score += 10
     factors.append({'name': '波动风险', 'score': min(100, vol_score)})
 
-    mcap = _safe(basic.get('market_cap'))
+    mcap = safe_float(basic.get('market_cap'))
     liq_score = 20
-    if mcap and mcap < 5e10:
+    if mcap and mcap < RISK_MCAP_SMALL:
         liq_score += 20
-    elif mcap and mcap < 1e11:
+    elif mcap and mcap < RISK_MCAP_MID:
         liq_score += 10
     factors.append({'name': '流动性风险', 'score': min(100, liq_score)})
 
     industry = str(basic.get('industry', ''))
     ind_score = 25
-    for k in ['房地产', '游戏', '教育']:
+    for k in HIGH_RISK_INDUSTRIES:
         if k in industry:
             ind_score += 20
 
-    # 使用 Fundamental 的定性信息进行风险映射
     macro_signals = []
     if fundamental:
         q = (fundamental.get('qualitative') or {})
@@ -122,7 +102,7 @@ def evaluate(snapshot, fundamental: dict | None = None):
     factors.append({'name': '行业风险', 'score': max(0, min(100, ind_score))})
 
     risk_score = int(sum(f['score'] for f in factors) / len(factors))
-    overall = '低' if risk_score < 35 else ('中等' if risk_score < 60 else '高')
+    overall = '低' if risk_score < RISK_LOW_THRESHOLD else ('中等' if risk_score < RISK_MED_THRESHOLD else '高')
 
     rec = []
     if overall == '高':
@@ -138,12 +118,11 @@ def evaluate(snapshot, fundamental: dict | None = None):
     return {
         'code': snapshot.get('code'),
         'name': basic.get('name'),
-        'overall_risk': overall,
         'risk_score': risk_score,
+        'overall_risk': overall,
         'factors': factors,
         'macro_signals': macro_signals,
         'recommendations': rec,
-        'quality': snapshot.get('quality', {})
     }
 
 
@@ -151,16 +130,22 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--code')
     p.add_argument('--snapshot')
-    p.add_argument('--fundamental-json', help='tstock-fundamental_analyzer 输出JSON（可选）')
+    p.add_argument('--fundamental-json')
     p.add_argument('--output')
+    p.add_argument('--verbose', action='store_true', help='显示详细日志')
+    p.add_argument('--debug', action='store_true', help='显示调试日志')
     args = p.parse_args()
+    setup_logging("DEBUG" if args.debug else ("INFO" if args.verbose else "WARNING"))
 
     if not args.code and not args.snapshot:
         raise SystemExit('请提供 --code 或 --snapshot')
 
-    snap = get_snapshot(args.code, args.snapshot)
-    fundamental = _load_json(args.fundamental_json)
-    result = evaluate(snap, fundamental=fundamental)
+    snap = load_snapshot(args.code, args.snapshot, data_type="all")
+    fund = None
+    if args.fundamental_json:
+        with open(args.fundamental_json, 'r', encoding='utf-8') as f:
+            fund = json.load(f)
+    result = evaluate(snap, fund)
     text = json.dumps(result, ensure_ascii=False, indent=2)
 
     if args.output:

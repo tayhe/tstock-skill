@@ -1,122 +1,110 @@
 #!/usr/bin/env python3
 import argparse
 import json
-import os
-import subprocess
-import pandas as pd
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-def load_snapshot(code=None, snapshot=None):
-    if snapshot:
-        with open(snapshot, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    # 相对于脚本位置动态推导项目根路径
-    _ws_root = Path(__file__).resolve().parent.parent.parent
-    script = _ws_root / "tstock-data-source/scripts/data_source.py"
-    tmp = f'/tmp/{code}_tech_snapshot.json'
-    subprocess.run(['python3', script, '--code', code, '--data-type', 'core', '--output', tmp], check=True)
-    with open(tmp, 'r', encoding='utf-8') as f:
-        return json.load(f)
+from tstock.logging_config import setup_logging
+
+import pandas as pd
+
+from tstock.snapshot import load_snapshot
+from tstock.constants import ATR_STOP_MULTIPLIER
 
 
 def calc_indicators(df: pd.DataFrame):
     df = df.copy()
     df['close'] = pd.to_numeric(df['收盘'], errors='coerce')
-    df['high'] = pd.to_numeric(df['最高'], errors='coerce')
-    df['low'] = pd.to_numeric(df['最低'], errors='coerce')
 
-    for n in (5, 10, 20, 60):
-        df[f'ma{n}'] = df['close'].rolling(n).mean()
-
-    ema12 = df['close'].ewm(span=12, adjust=False).mean()
-    ema26 = df['close'].ewm(span=26, adjust=False).mean()
-    df['macd_dif'] = ema12 - ema26
-    df['macd_dea'] = df['macd_dif'].ewm(span=9, adjust=False).mean()
-    df['macd_hist'] = (df['macd_dif'] - df['macd_dea']) * 2
+    for w in [5, 10, 20, 60]:
+        df[f'ma{w}'] = df['close'].rolling(w).mean()
 
     delta = df['close'].diff()
     gain = delta.clip(lower=0).rolling(14).mean()
     loss = (-delta.clip(upper=0)).rolling(14).mean()
-    rs = gain / loss.replace(0, pd.NA)
-    df['rsi14'] = 100 - (100 / (1 + rs))
+    rs = gain / loss.replace(0, 1e-9)
+    df['rsi14'] = 100 - 100 / (1 + rs)
 
-    m = df['close'].rolling(20).mean()
-    s = df['close'].rolling(20).std()
-    df['boll_mid'] = m
-    df['boll_up'] = m + 2 * s
-    df['boll_dn'] = m - 2 * s
+    ema12 = df['close'].ewm(span=12).mean()
+    ema26 = df['close'].ewm(span=26).mean()
+    df['macd_dif'] = ema12 - ema26
+    df['macd_dea'] = df['macd_dif'].ewm(span=9).mean()
+    df['macd_hist'] = 2 * (df['macd_dif'] - df['macd_dea'])
 
-    # KDJ (9,3,3)
-    low_n = df['low'].rolling(9).min()
-    high_n = df['high'].rolling(9).max()
-    rsv = (df['close'] - low_n) / (high_n - low_n).replace(0, pd.NA) * 100
-    df['kdj_k'] = rsv.ewm(alpha=1/3, adjust=False).mean()
-    df['kdj_d'] = df['kdj_k'].ewm(alpha=1/3, adjust=False).mean()
+    df['boll_mid'] = df['close'].rolling(20).mean()
+    std20 = df['close'].rolling(20).std()
+    df['boll_up'] = df['boll_mid'] + 2 * std20
+    df['boll_dn'] = df['boll_mid'] - 2 * std20
+
+    low9 = df['close'].rolling(9).min()
+    high9 = df['close'].rolling(9).max()
+    rsv = (df['close'] - low9) / (high9 - low9).replace(0, 1e-9) * 100
+    df['kdj_k'] = rsv.ewm(com=2).mean()
+    df['kdj_d'] = df['kdj_k'].ewm(com=2).mean()
     df['kdj_j'] = 3 * df['kdj_k'] - 2 * df['kdj_d']
 
-    tr1 = (df['high'] - df['low']).abs()
-    tr2 = (df['high'] - df['close'].shift(1)).abs()
-    tr3 = (df['low'] - df['close'].shift(1)).abs()
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    high = pd.to_numeric(df['最高'], errors='coerce')
+    low = pd.to_numeric(df['最低'], errors='coerce')
+    prev_close = df['close'].shift(1)
+    tr = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
     df['atr14'] = tr.rolling(14).mean()
+
     return df
 
 
 def analyze(snapshot):
-    rows = snapshot.get('market', {}).get('price_data', [])
-    if not rows:
+    price_data = snapshot.get('market', {}).get('price_data', [])
+    if not price_data:
         return {'error': '缺少行情数据'}
-    df = pd.DataFrame(rows)
+
+    df = pd.DataFrame(price_data)
     df = calc_indicators(df)
     last = df.iloc[-1]
+    close = float(last['close']) if pd.notna(last['close']) else None
 
-    close = float(last['close'])
-    ma20 = float(last['ma20']) if pd.notna(last['ma20']) else None
-    ma60 = float(last['ma60']) if pd.notna(last['ma60']) else None
+    ma20 = float(last['ma20']) if pd.notna(last.get('ma20')) else None
+    ma60 = float(last['ma60']) if pd.notna(last.get('ma60')) else None
 
-    trend = '震荡'
-    if ma20 and ma60:
+    if close and ma20 and ma60:
         if close > ma20 > ma60:
             trend = '多头'
         elif close < ma20 < ma60:
             trend = '空头'
-
-    rsi = float(last['rsi14']) if pd.notna(last['rsi14']) else None
-    macd_hist = float(last['macd_hist']) if pd.notna(last['macd_hist']) else None
+        else:
+            trend = '震荡'
+    else:
+        trend = '数据不足'
 
     signal = []
-    if macd_hist is not None:
-        signal.append('MACD偏多' if macd_hist > 0 else 'MACD偏空')
-    if rsi is not None:
-        if rsi >= 70:
+    rsi = float(last['rsi14']) if pd.notna(last.get('rsi14')) else None
+    if rsi:
+        if rsi > 70:
             signal.append('RSI超买')
-        elif rsi <= 30:
+        elif rsi < 30:
             signal.append('RSI超卖')
+
+    macd_hist = float(last['macd_hist']) if pd.notna(last.get('macd_hist')) else None
+    if macd_hist is not None:
+        if macd_hist > 0:
+            signal.append('MACD多头')
         else:
-            signal.append('RSI中性')
+            signal.append('MACD空头')
 
-    k = float(last['kdj_k']) if pd.notna(last['kdj_k']) else None
-    d = float(last['kdj_d']) if pd.notna(last['kdj_d']) else None
-    j = float(last['kdj_j']) if pd.notna(last['kdj_j']) else None
+    k = float(last['kdj_k']) if pd.notna(last.get('kdj_k')) else None
+    d = float(last['kdj_d']) if pd.notna(last.get('kdj_d')) else None
+    j = float(last['kdj_j']) if pd.notna(last.get('kdj_j')) else None
 
-    boll_up = float(last['boll_up']) if pd.notna(last['boll_up']) else None
-    boll_mid = float(last['boll_mid']) if pd.notna(last['boll_mid']) else None
-    boll_dn = float(last['boll_dn']) if pd.notna(last['boll_dn']) else None
+    boll_up = float(last['boll_up']) if pd.notna(last.get('boll_up')) else None
+    boll_mid = float(last['boll_mid']) if pd.notna(last.get('boll_mid')) else None
+    boll_dn = float(last['boll_dn']) if pd.notna(last.get('boll_dn')) else None
 
-    if k is not None and d is not None:
-        signal.append('KDJ金叉' if k > d else 'KDJ死叉')
-    if j is not None:
-        if j > 100:
-            signal.append('KDJ高位钝化风险')
-        elif j < 0:
-            signal.append('KDJ低位修复机会')
-
-    if boll_up is not None and boll_dn is not None:
+    if close and boll_up and boll_dn:
         if close > boll_up:
-            signal.append('BOLL上轨突破')
+            signal.append('突破布林上轨')
         elif close < boll_dn:
-            signal.append('BOLL下轨跌破')
+            signal.append('跌破布林下轨')
         else:
             signal.append('BOLL区间运行')
 
@@ -125,7 +113,7 @@ def analyze(snapshot):
     resistance = float(rolling20.max()) if len(rolling20) else None
 
     atr = float(last['atr14']) if pd.notna(last['atr14']) else None
-    stop_ref = (close - 1.5 * atr) if atr else None
+    stop_ref = (close - ATR_STOP_MULTIPLIER * atr) if atr else None
 
     return {
         'code': snapshot.get('code'),
@@ -150,12 +138,15 @@ def main():
     p.add_argument('--code')
     p.add_argument('--snapshot')
     p.add_argument('--output')
+    p.add_argument('--verbose', action='store_true', help='显示详细日志')
+    p.add_argument('--debug', action='store_true', help='显示调试日志')
     args = p.parse_args()
+    setup_logging("DEBUG" if args.debug else ("INFO" if args.verbose else "WARNING"))
 
     if not args.code and not args.snapshot:
         raise SystemExit('请提供 --code 或 --snapshot')
 
-    snap = load_snapshot(args.code, args.snapshot)
+    snap = load_snapshot(args.code, args.snapshot, data_type="core")
     result = analyze(snap)
     text = json.dumps(result, ensure_ascii=False, indent=2)
 

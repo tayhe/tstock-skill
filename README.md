@@ -61,6 +61,8 @@ uv run python tstock-workflow/scripts/workflow.py 300308
 ```bash
 # 完整分析流程（由 tstock-workflow 编排）
 uv run python tstock-workflow/scripts/workflow.py 300308
+uv run python tstock-workflow/scripts/workflow.py 300308 --pretty               # 输出 markdown 报告
+uv run python tstock-workflow/scripts/workflow.py 300308 --refresh-data         # 强制刷新缓存
 
 # 单独使用各技能
 uv run python tstock-data-source/scripts/data_source.py --code 600118 --data-type all --output /tmp/600118.json
@@ -71,6 +73,9 @@ uv run python tstock-risk_analyzer/scripts/risk_evaluator.py --code 300308 --out
 # 自选池管理
 uv run python tstock-portfolio/scripts/watchlist_manager.py add --code 300308 --name 中际旭创 --group AI算力
 uv run python tstock-portfolio/scripts/watchlist_manager.py list
+
+# 调试模式（所有脚本均支持）
+uv run python tstock-data-source/scripts/data_source.py --code 300308 --debug --no-cache --output /tmp/debug.json
 ```
 
 ---
@@ -87,23 +92,35 @@ tstock-skills/
 ├── uv.lock                   ← 依赖版本锁定
 ├── config.py                 ← 外部技能路径与 API Key 配置
 │
-├── tstock-workflow/          ← 编排器（统一入口）
-│   └── SKILL.md
+├── tstock/                   ← 共享工具库（所有 skill 共用）
+│   ├── utils.py              # safe_float, normalize_code 等
+│   ├── paths.py              # 路径常量
+│   ├── constants.py          # 魔法数字集中管理
+│   ├── snapshot.py           # 统一快照加载
+│   └── logging_config.py     # 日志配置
 │
-├── tstock-data-source/       ← 数据源
-│   └── SKILL.md
+├── tstock-workflow/          ← 编排器（统一入口）
+│   └── scripts/
+│       ├── workflow.py       # 流程编排
+│       └── report.py         # Markdown 报告渲染
+│
+├── tstock-data-source/       ← 统一数据源
+│   └── scripts/
+│       ├── data_source.py    # CLI 入口（薄 shim）
+│       └── tstock_data_source/  # 核心逻辑包
+│           ├── providers/    # AkShare / 东方财富 / Baostock / 腾讯 / 同花顺
+│           ├── valuation.py  # 稳定估值口径
+│           ├── transform.py  # 数据标准化
+│           └── ...
 │
 ├── tstock-fundamental_analyzer/  ← 基本面分析
-│   └── SKILL.md
+│   └── scripts/
+│       ├── fundamental_analyzer.py  # 财务评分 + 定性整合
+│       └── web_research.py          # 搜索策略与文本处理
 │
 ├── tstock-technical_analyzer/    ← 技术面分析
-│   └── SKILL.md
-│
 ├── tstock-risk_analyzer/     ← 风险评估
-│   └── SKILL.md
-│
-└── tstock-portfolio/         ← 组合管理
-    └── SKILL.md
+└── tstock-portfolio/         ← 组合管理（策略建议 + 自选池）
 ```
 
 ---

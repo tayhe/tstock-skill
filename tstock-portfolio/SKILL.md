@@ -18,5 +18,18 @@ python scripts/watchlist_manager.py list
 python scripts/strategy_planner.py --code 300308 \
   --fundamental /tmp/300308_fundamental.json \
   --technical /tmp/300308_tech.json \
-  --risk /tmp/300308_risk.json
+  --risk /tmp/300308_risk.json \
+  --output /tmp/300308_strategy.json
 ```
+
+### strategy_planner 参数
+
+| 参数 | 说明 |
+|------|------|
+| `--code` | 股票代码（必填） |
+| `--fundamental` | 基本面分析 JSON 路径（必填） |
+| `--technical` | 技术面分析 JSON 路径（必填） |
+| `--risk` | 风险评估 JSON 路径（必填） |
+| `--output` | 输出文件路径 |
+| `--verbose` | 显示详细日志 |
+| `--debug` | 显示调试日志 |

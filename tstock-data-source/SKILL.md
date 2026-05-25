@@ -27,7 +27,7 @@ export EASTMONEY_APIKEY="your_api_key"  # 从 https://marketing.dfcfs.com/ 获�
 
 ## 2) 核心脚本
 
-- 主脚本：`scripts/data_source.py`
+- 主脚本：`scripts/data_source.py`（薄 shim，实际逻辑在 `tstock_data_source/` 包中）
 - 输出模式：标准 JSON（含 schema_version、snapshot_id、as_of、quality）
 
 ## 3) 常用命令
@@ -51,6 +51,14 @@ python scripts/data_source.py --scope hs300
 ```
 
 支持范围：`hs300 | zz500 | zz1000 | cyb | kcb | all`
+
+### 通用参数
+
+| 参数 | 说明 |
+|------|------|
+| `--no-cache` | 强制刷新缓存 |
+| `--verbose` | 显示详细日志（INFO 级别） |
+| `--debug` | 显示调试日志（DEBUG 级别） |
 
 ## 4) 数据类型（--data-type）
 
@@ -119,12 +127,28 @@ python scripts/data_source.py --scope hs300
 }
 ```
 
-## 8) 与 tstock-workflow 的衔接建议
+## 8) 架构
 
-在分析工作流中，将"数据收集步骤"替换为：
+```
+tstock_data_source/
+├── cli.py                # argparse 入口
+├── cache.py              # 日级文件缓存
+├── snapshot.py           # 快照编排器
+├── valuation.py          # 稳定估值口径
+├── transform.py          # 数据标准化层
+├── batch.py              # 批量与指数成分
+└── providers/
+    ├── akshare.py        # AkShare 数据源
+    ├── baostock.py       # Baostock 数据源
+    ├── dfcf.py           # 东方财富 API
+    ├── iwencai.py        # 同花顺 skills
+    └── tencent.py        # 腾讯 PE/PB 兜底
+```
+
+## 9) 编程接口
 
 ```python
-from data_source import fetch_stock_snapshot
+from tstock_data_source import fetch_stock_snapshot
 raw = fetch_stock_snapshot("600118", data_type="all", years=3)
 ```
 

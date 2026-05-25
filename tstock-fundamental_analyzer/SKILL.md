@@ -13,10 +13,21 @@ description: A股基本面分析 Skill，聚焦定量+定性基本面结论输�
 python scripts/fundamental_analyzer.py --code 300308 --output /tmp/300308_fundamental.json
 ```
 
-可选：
+### 参数
+
+| 参数 | 说明 |
+|------|------|
+| `--code` | 股票代码（自动获取快照） |
+| `--snapshot` | 已有快照 JSON 路径（跳过数据获取） |
+| `--output` | 输出文件路径 |
+| `--no-qualitative` | 禁用定性信息抓取（跳过网络搜索） |
+| `--verbose` | 显示详细日志 |
+| `--debug` | 显示调试日志 |
+
+使用已有快照：
 
 ```bash
-python scripts/fundamental_analyzer.py --snapshot /tmp/300308_snapshot.json
+python scripts/fundamental_analyzer.py --snapshot /tmp/300308_snapshot.json --output /tmp/fund.json
 ```
 
 ## 输出

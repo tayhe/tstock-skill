@@ -34,34 +34,52 @@ uv run python tstock-data-source/scripts/data_source.py --scope hs300
 ```
 workflow.py (orchestrator)
   │
-  ├─► data_source.py          # Single source of truth for all stock data
-  │     Outputs: snapshot JSON (schema_version, snapshot_id, quality, basic, market, valuation, financial)
-  │     Cache: scripts/.cache/{code}_{type}_{date}.json (day-level, --no-cache to bypass)
+  ├─► data_source.py ──────► tstock_data_source/    # 实际逻辑在包中
+  │     ├── providers/akshare.py                     # AkShare 数据源
+  │     ├── providers/baostock.py                    # Baostock 数据源
+  │     ├── providers/dfcf.py                        # 东方财富 API
+  │     ├── providers/iwencai.py                     # 同花顺 skills
+  │     ├── providers/tencent.py                     # 腾讯 PE/PB 兜底
+  │     ├── valuation.py                             # 稳定估值口径
+  │     ├── transform.py                             # 数据标准化层
+  │     ├── snapshot.py                              # 快照编排器
+  │     ├── batch.py                                 # 批量与指数成分
+  │     └── cache.py                                 # 日级文件缓存
   │
   ├─► fundamental_analyzer.py # Reads snapshot → profitability, health, valuation, qualitative (web search)
   ├─► technical_analyzer.py   # Reads snapshot → MA/MACD/RSI/BOLL/KDJ/ATR indicators
   ├─► risk_evaluator.py       # Reads snapshot + fundamental JSON → risk score (0-100)
   └─► strategy_planner.py     # Reads fundamental + technical + risk → action/position/stop
+
+tstock/ (shared library)
+  ├── utils.py     # safe_float, normalize_code, with_exchange_prefix, to_bs_code
+  ├── paths.py     # PROJECT_ROOT, all script path constants
+  ├── constants.py # 魔法数字（评分阈值、HTTP 超时、风险门槛等）
+  ├── snapshot.py  # load_snapshot(code, snapshot_path, data_type)
+  └── logging_config.py # setup_logging(level)
 ```
 
 **Data flow**: Each downstream skill accepts either `--code` (fetched fresh) or `--snapshot` (reuses existing JSON). The orchestrator always passes snapshot paths via subprocess to avoid re-fetching.
 
-**Path resolution**: Every script resolves the project root as `Path(__file__).resolve().parent.parent.parent`. Skills live at `{project_root}/tstock-{name}/scripts/`.
+**Path resolution**: Every script inserts the project root into `sys.path` so `tstock` and `config` are importable. `data_source.py` additionally adds `scripts/` to `sys.path` for the `tstock_data_source` package. Skills live at `{project_root}/tstock-{name}/scripts/`.
 
-**External skill dependencies**: `fundamental_analyzer.py` calls `minimax-web-search` and `tavily-search` (for qualitative web research). `data_source.py` optionally calls 同花顺 (iwencai) skills. 东方财富 skills are available but currently unused (data comes via direct HTTP API). Each series has its own root variable in `config.py`, overridable via `SEARCH_SKILLS_ROOT`, `IWENCAI_SKILLS_ROOT`, and `EASTMONEY_SKILLS_ROOT` env vars.
+**External skill dependencies**: `fundamental_analyzer.py` calls `minimax-web-search` and `tavily-search` (for qualitative web research). `tstock_data_source/providers/iwencai.py` optionally calls 同花顺 skills. Each series has its own root variable in `config.py`, overridable via `SEARCH_SKILLS_ROOT`, `IWENCAI_SKILLS_ROOT`, and `EASTMONEY_SKILLS_ROOT` env vars.
 
 **Data source priority**: 东方财富 (PE/PB/PEG/industry, needs `EASTMONEY_APIKEY`, free tier 150 calls/day) → AkShare (spot行情+行业均值) → Baostock (财务备份) → 腾讯 (PE/PB兜底). 同花顺为可选增强（行业分类、研报、经营数据）。东方财富限流时自动降级到 AkShare/腾讯。
 
 **Qualitative search cascade** (fundamental_analyzer): `minimax-web-search` (preferred, good Chinese support) → `tavily-search` (fallback). `eastmoney-financial-search` is called separately for precise financial queries.
 
+**Logging**: All scripts support `--verbose` (INFO) and `--debug` (DEBUG) flags. Uses standard `logging.getLogger(__name__)`. Default level is WARNING (silent).
+
 ## Key Conventions
 
-- All scripts are standalone CLI with `argparse`; no shared library imports between skills
+- Shared utilities live in `tstock/` package — never duplicate `safe_float`, path resolution, or constants
+- Data source logic lives in `tstock_data_source/` package — `data_source.py` is a thin shim
 - All inter-skill data passes through JSON files, never direct function calls
 - All numeric fields use `safe_float()` helper — returns `None` for `"--"`, `"nan"`, empty strings
 - Stock codes are normalized to 6-digit (no exchange prefix) internally; `with_exchange_prefix()` / `to_bs_code()` convert as needed
 - Valuation data should be read from `valuation_stable` in snapshots (unified口径), not raw `valuation`
-- The transform layer (`_transform_snapshot`) in data_source normalizes data from different sources so downstream skills are decoupled from source specifics
+- The transform layer (`transform_snapshot`) normalizes data from different sources so downstream skills are decoupled from source specifics
 
 ## Dependencies
 
