@@ -1,0 +1,13 @@
+[project]
+name = "tstock-skills"
+version = "0.1.0"
+description = "A股智能投资分析系统"
+requires-python = ">=3.10"
+dependencies = [
+    "akshare>=1.14.0",
+    "pandas>=2.0.0",
+    "requests>=2.28.0",
+]
+
+[project.optional-dependencies]
+baostock = ["baostock>=0.8.8"]

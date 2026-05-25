@@ -10,23 +10,23 @@ A-share (China stock market) analysis toolkit built as a collection of independe
 
 ```bash
 # Full analysis pipeline (orchestrates all skills)
-python tstock-workflow/scripts/workflow.py 300308 --pretty
-python tstock-workflow/scripts/workflow.py 300308 --output /tmp/report.json --refresh-data
+uv run python tstock-workflow/scripts/workflow.py 300308 --pretty
+uv run python tstock-workflow/scripts/workflow.py 300308 --output /tmp/report.json --refresh-data
 
 # Individual skills
-python tstock-data-source/scripts/data_source.py --code 600118 --data-type all --output /tmp/600118.json
-python tstock-fundamental_analyzer/scripts/fundamental_analyzer.py --code 300308 --output /tmp/fund.json
-python tstock-technical_analyzer/scripts/technical_analyzer.py --code 300308 --output /tmp/tech.json
-python tstock-risk_analyzer/scripts/risk_evaluator.py --code 300308 --output /tmp/risk.json
-python tstock-portfolio/scripts/strategy_planner.py --code 300308 --fundamental /tmp/fund.json --technical /tmp/tech.json --risk /tmp/risk.json
+uv run python tstock-data-source/scripts/data_source.py --code 600118 --data-type all --output /tmp/600118.json
+uv run python tstock-fundamental_analyzer/scripts/fundamental_analyzer.py --code 300308 --output /tmp/fund.json
+uv run python tstock-technical_analyzer/scripts/technical_analyzer.py --code 300308 --output /tmp/tech.json
+uv run python tstock-risk_analyzer/scripts/risk_evaluator.py --code 300308 --output /tmp/risk.json
+uv run python tstock-portfolio/scripts/strategy_planner.py --code 300308 --fundamental /tmp/fund.json --technical /tmp/tech.json --risk /tmp/risk.json
 
 # Watchlist management
-python tstock-portfolio/scripts/watchlist_manager.py add --code 300308 --name 中际旭创 --group AI算力
-python tstock-portfolio/scripts/watchlist_manager.py list
+uv run python tstock-portfolio/scripts/watchlist_manager.py add --code 300308 --name 中际旭创 --group AI算力
+uv run python tstock-portfolio/scripts/watchlist_manager.py list
 
 # Batch & index constituents
-python tstock-data-source/scripts/data_source.py --codes 600118,002050 --data-type core --batch-output /tmp/batch.json
-python tstock-data-source/scripts/data_source.py --scope hs300
+uv run python tstock-data-source/scripts/data_source.py --codes 600118,002050 --data-type core --batch-output /tmp/batch.json
+uv run python tstock-data-source/scripts/data_source.py --scope hs300
 ```
 
 ## Architecture
@@ -66,8 +66,9 @@ workflow.py (orchestrator)
 ## Dependencies
 
 ```bash
-pip install akshare pandas requests
-pip install baostock  # optional, backup financial data source
+uv sync                    # install core dependencies
+uv sync --extra baostock   # include optional baostock
+uv run python ...          # run scripts within the venv
 ```
 
 ## Configuration (config.py)

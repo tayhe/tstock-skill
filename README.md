@@ -22,8 +22,14 @@
 ### 依赖安装
 
 ```bash
-pip install akshare pandas requests
-pip install baostock        # 可选，推荐作为财务备份数据源
+uv sync                    # 安装核心依赖
+uv sync --extra baostock   # 可选：安装 baostock 财务备份数据源
+```
+
+运行脚本时使用 `uv run` 自动激活虚拟环境：
+
+```bash
+uv run python tstock-workflow/scripts/workflow.py 300308
 ```
 
 ### 配置（config.py）
@@ -54,17 +60,17 @@ pip install baostock        # 可选，推荐作为财务备份数据源
 
 ```bash
 # 完整分析流程（由 tstock-workflow 编排）
-python tstock-workflow/scripts/workflow.py 300308
+uv run python tstock-workflow/scripts/workflow.py 300308
 
 # 单独使用各技能
-python tstock-data-source/scripts/data_source.py --code 600118 --data-type all --output /tmp/600118.json
-python tstock-fundamental_analyzer/scripts/fundamental_analyzer.py --code 300308 --output /tmp/fundamental.json
-python tstock-technical_analyzer/scripts/technical_analyzer.py --code 300308 --output /tmp/tech.json
-python tstock-risk_analyzer/scripts/risk_evaluator.py --code 300308 --output /tmp/risk.json
+uv run python tstock-data-source/scripts/data_source.py --code 600118 --data-type all --output /tmp/600118.json
+uv run python tstock-fundamental_analyzer/scripts/fundamental_analyzer.py --code 300308 --output /tmp/fundamental.json
+uv run python tstock-technical_analyzer/scripts/technical_analyzer.py --code 300308 --output /tmp/tech.json
+uv run python tstock-risk_analyzer/scripts/risk_evaluator.py --code 300308 --output /tmp/risk.json
 
 # 自选池管理
-python tstock-portfolio/scripts/watchlist_manager.py add --code 300308 --name 中际旭创 --group AI算力
-python tstock-portfolio/scripts/watchlist_manager.py list
+uv run python tstock-portfolio/scripts/watchlist_manager.py add --code 300308 --name 中际旭创 --group AI算力
+uv run python tstock-portfolio/scripts/watchlist_manager.py list
 ```
 
 ---
