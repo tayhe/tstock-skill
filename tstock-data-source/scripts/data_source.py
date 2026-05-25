@@ -322,6 +322,9 @@ def get_valuation_from_dfcf(code: str) -> Dict[str, Any]:
                 if r.status_code != 200:
                     continue
                 obj = r.json()
+                # 检测 API 限流/配额耗尽
+                if obj and not obj.get("success") and obj.get("code"):
+                    return {"error": f"dfcf.api_limit: {obj.get('message', '')}", "source": "dfcf.skill"}
                 root = (((obj or {}).get("data") or {}).get("data") or {}).get("searchDataResultDTO") or {}
                 dt_list = root.get("dataTableDTOList") or []
                 target_code = f"{code}.{market_suffix}"
@@ -369,6 +372,8 @@ def get_valuation_from_dfcf(code: str) -> Dict[str, Any]:
                 if r.status_code != 200:
                     continue
                 obj = r.json()
+                if obj and not obj.get("success") and obj.get("code"):
+                    break  # 限流，跳过行业查询
                 root = (((obj or {}).get("data") or {}).get("data") or {}).get("searchDataResultDTO") or {}
                 dt_list = root.get("dataTableDTOList") or []
 
@@ -425,18 +430,20 @@ def get_valuation_from_dfcf(code: str) -> Dict[str, Any]:
                 if r.status_code != 200:
                     continue
                 obj = r.json()
+                if obj and not obj.get("success") and obj.get("code"):
+                    break  # 限流，跳过行业估值查询
                 root = (((obj or {}).get("data") or {}).get("data") or {}).get("searchDataResultDTO") or {}
                 dt_list = root.get("dataTableDTOList") or []
-                
+
                 for it in dt_list:
                     table = it.get("table") or {}
                     field = it.get("field") or {}
                     name = str(field.get("returnName") or "")
-                    
+
                     v = _extract_first_numeric_from_table_obj(table)
                     if v is None:
                         continue
-                        
+
                     if "市盈率PE(TTM)" in name or "市盈率PE" in name or "整体法" in name:
                         if out["industry_avg"]["pe"] is None:
                             out["industry_avg"]["pe"] = v
@@ -468,18 +475,20 @@ def get_valuation_from_dfcf(code: str) -> Dict[str, Any]:
                     if r.status_code != 200:
                         continue
                     obj = r.json()
+                    if obj and not obj.get("success") and obj.get("code"):
+                        break  # 限流，跳过
                     root = (((obj or {}).get("data") or {}).get("data") or {}).get("searchDataResultDTO") or {}
                     dt_list = root.get("dataTableDTOList") or []
-                    
+
                     for it in dt_list:
                         table = it.get("table") or {}
                         field = it.get("field") or {}
                         field_name = str(field.get("returnName", ""))
-                        
+
                         v = _extract_first_numeric_from_table_obj(table)
                         if v is None:
                             continue
-                            
+
                         # 更灵活的字段匹配 - 支持各种PE/PB字段名称
                         field_lower = field_name.lower()
                         if "市盈率" in field_name or "pe" in field_lower:
@@ -563,8 +572,10 @@ def get_industry_valuation(industry_keyword: str) -> Dict[str, Any]:
         
         if r.status_code != 200:
             return out
-            
+
         obj = r.json()
+        if obj and not obj.get("success") and obj.get("code"):
+            return out
         root = (((obj or {}).get("data") or {}).get("data") or {}).get("searchDataResultDTO") or {}
         dt_list = root.get("dataTableDTOList") or []
         
@@ -597,6 +608,35 @@ def get_industry_valuation(industry_keyword: str) -> Dict[str, Any]:
         return out
 
 
+def _supplement_industry_from_spot(out: Dict, code: str, industry_name: str):
+    """当主数据源未返回行业均值时，从 AkShare 实时行情补充。"""
+    try:
+        spot = _fetch_spot_with_retry()
+        if spot is None or spot.empty:
+            return
+        row = spot[spot["代码"].astype(str) == str(code)]
+        if row.empty:
+            return
+        r = row.iloc[0]
+        if not industry_name:
+            industry_name = str(r.get("行业", "") or "")
+        if industry_name and "行业" in spot.columns:
+            g = spot[spot["行业"].astype(str) == industry_name].copy()
+            out["sample_size"] = int(len(g))
+            if len(g) >= 8:
+                if out["industry_avg"].get("pe") is None:
+                    out["industry_avg"]["pe"] = _winsorized_median(g.get("市盈率-动态"))
+                if out["industry_avg"].get("pb") is None:
+                    out["industry_avg"]["pb"] = _winsorized_median(g.get("市净率"))
+                if out["industry_avg"].get("pr") is None:
+                    out["industry_avg"]["pr"] = _winsorized_median(g.get("市销率"))
+            if industry_name and not out.get("industry_name"):
+                out["industry_name"] = industry_name
+            out["meta"]["source_used"].append("akshare.spot")
+    except Exception:
+        pass
+
+
 def get_valuation_stable(code: str, industry_name: str = "") -> Dict[str, Any]:
     """双主源 + 权威校验：稳定估值口径（由数据源独家输出）。
     
@@ -622,21 +662,27 @@ def get_valuation_stable(code: str, industry_name: str = "") -> Dict[str, Any]:
 
     # 优先使用东方财富数据（2026-03-17 增强）
     dfcf = get_valuation_from_dfcf(code)
-    if dfcf and not dfcf.get("error"):
+    dfcf_has_data = (dfcf and not dfcf.get("error")
+                     and (dfcf.get("pe_ttm") is not None or dfcf.get("pb") is not None))
+    if dfcf_has_data:
         out["pe_ttm"] = dfcf.get("pe_ttm")
         out["pb"] = dfcf.get("pb")
         out["pr"] = dfcf.get("pr")
         out["peg"] = dfcf.get("peg")
         out["growth_yoy_pct"] = dfcf.get("growth_yoy_pct")
-        
+
         # 行业数据
         if dfcf.get("industry_avg"):
             out["industry_avg"] = dfcf["industry_avg"]
         if dfcf.get("industry_name"):
             out["industry_name"] = dfcf["industry_name"]
-            
+
         out["premium_pct"] = dfcf.get("premium_pct", {"pe": None, "pb": None, "pr": None})
         out["meta"]["source_used"].append("dfcf.skill")
+
+        # 若 dfcf 未返回行业均值，尝试从 AkShare 补充
+        if out["industry_avg"].get("pe") is None and out["industry_avg"].get("pe_median") is None:
+            _supplement_industry_from_spot(out, code, industry_name)
     else:
         # 备源1：Akshare 实时行情
         spot = _fetch_spot_with_retry()
@@ -854,7 +900,7 @@ def _call_iwencai_skill(skill_cli_path: str, query: str, timeout: int = 20, extr
             cmd, capture_output=True, text=True, timeout=timeout,
             env={
                 **os.environ,
-                "IWENCAI_BASE_URL": "https://openapi.iwencai.com",
+                "IWENCAI_BASE_URL": config.IWENCAI_BASE_URL,
                 "IWENCAI_API_KEY": config.IWENCAI_API_KEY,
             }
         )

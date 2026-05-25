@@ -32,7 +32,7 @@ IWENCAI_SKILLS_ROOT = Path(os.environ.get(
 # 保留此配置以便后续集成 eastmoney-financial-search 等本地技能
 EASTMONEY_SKILLS_ROOT = Path(os.environ.get(
     "EASTMONEY_SKILLS_ROOT",
-    str(Path.home() / ".openclaw/workspace-fiona/skills"),
+    str(Path.home() / "Projects/eastmoney-skills"),
 ))
 
 # ── API Keys ────────────────────────────────────────────────────────────────
@@ -41,5 +41,6 @@ EASTMONEY_SKILLS_ROOT = Path(os.environ.get(
 # 获取：https://marketing.dfcfs.com/
 EASTMONEY_APIKEY = os.environ.get("EASTMONEY_APIKEY", "")
 
-# 同花顺 API Key（用于行业数据查询、研报搜索、公司经营数据查询）
+# 同花顺 API（用于行业数据查询、研报搜索、公司经营数据查询）
+IWENCAI_BASE_URL = os.environ.get("IWENCAI_BASE_URL", "https://openapi.iwencai.com")
 IWENCAI_API_KEY = os.environ.get("IWENCAI_API_KEY", "")

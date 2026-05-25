@@ -44,8 +44,8 @@ pip install baostock        # 可选，推荐作为财务备份数据源
 | 变量 | 用途 | 默认值 |
 |------|------|--------|
 | `SEARCH_SKILLS_ROOT` | 搜索系列（minimax-web-search、tavily-search） | `~/.openclaw/skills` |
-| `IWENCAI_SKILLS_ROOT` | 同花顺系列（行业数据、研报、经营数据） | `~/.openclaw/workspace-fiona/skills` |
-| `EASTMONEY_SKILLS_ROOT` | 东方财富系列（financial-data、financial-search、select-stock） | `~/.openclaw/workspace-fiona/skills` |
+| `IWENCAI_SKILLS_ROOT` | 同花顺系列（行业数据、研报、经营数据） | `~/Projects/iwencai-skills` |
+| `EASTMONEY_SKILLS_ROOT` | 东方财富系列（financial-data、financial-search、select-stock） | `~/Projects/eastmoney-skills` |
 
 各系列可指向不同路径，互不影响。
 
