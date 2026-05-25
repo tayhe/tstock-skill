@@ -24,7 +24,7 @@ TAVILY_SEARCH = SEARCH_SKILLS_ROOT / "tavily-search-1-0-0/scripts/search.mjs"
 # 用于 tstock-data-source 的数据增强（行业估值、研报、经营数据）
 IWENCAI_SKILLS_ROOT = Path(os.environ.get(
     "IWENCAI_SKILLS_ROOT",
-    str(Path.home() / ".openclaw/workspace-fiona/skills"),
+    str(Path.home() / "Projects/iwencai-skills"),
 ))
 
 # ── 东方财富系列（financial-data、financial-search、select-stock）────────────
