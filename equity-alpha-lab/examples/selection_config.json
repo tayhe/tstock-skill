@@ -1,0 +1,20 @@
+{
+  "rebalance_date": "2026-03-13",
+  "factors": ["value", "quality", "momentum"],
+  "weights": {
+    "value": 0.3,
+    "quality": 0.4,
+    "momentum": 0.3
+  },
+  "risk_controls": {
+    "industry_cap": 0.3,
+    "single_name_cap": 0.05,
+    "exclude_st": true,
+    "exclude_suspended": true,
+    "min_adv_20d": 50000000
+  },
+  "selection": {
+    "top_n": 30,
+    "weighting": "score"
+  }
+}

@@ -17,6 +17,10 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 import requests
 
+# 将项目根目录加入 sys.path，以便导入 config
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+import config
+
 try:
     import akshare as ak
     import pandas as pd
@@ -38,7 +42,7 @@ def safe_float(v):
         return None
     try:
         if isinstance(v, str):
-            v = v.replace(",", "").replace("%", "").strip()
+            v = v.replace(",", "").replace("%", "").replace("倍", "").strip()
             if v in ("", "--", "nan", "None"):
                 return None
         return float(v)
@@ -296,14 +300,7 @@ def get_valuation_from_dfcf(code: str) -> Dict[str, Any]:
         "source": "dfcf.skill"
     }
 
-    api_key = os.getenv("EASTMONEY_APIKEY", "").strip()
-    if not api_key:
-        # 尝试从环境变量获取
-        api_key = os.environ.get("EASTMONEY_APIKEY", "")
-    
-    if not api_key:
-        # 使用内置的 API Key（如果有）
-        pass
+    api_key = config.EASTMONEY_APIKEY.strip()
 
     try:
         url = "https://mkapi2.dfcfs.com/finskillshub/api/claw/query"
@@ -316,6 +313,7 @@ def get_valuation_from_dfcf(code: str) -> Dict[str, Any]:
         queries = [
             f"{code}.{market_suffix} 市盈率(TTM) 市净率(PB) 归母净利润同比增长率",
             f"{code}.{market_suffix} 市盈率PE 市净率PB 净利润同比增速",
+            f"{code}.{market_suffix} 市盈率PE(TTM)",
         ]
         
         for q in queries:
@@ -361,10 +359,10 @@ def get_valuation_from_dfcf(code: str) -> Dict[str, Any]:
         industry_queries = [
             f"{code}.{market_suffix} 所属行业 申万行业 中信行业 东财行业",
         ]
-        
+
         industry_code = None
         industry_names = []
-        
+
         for iq in industry_queries:
             try:
                 r = requests.post(url, headers=headers, json={"toolQuery": iq}, timeout=15)
@@ -373,57 +371,53 @@ def get_valuation_from_dfcf(code: str) -> Dict[str, Any]:
                 obj = r.json()
                 root = (((obj or {}).get("data") or {}).get("data") or {}).get("searchDataResultDTO") or {}
                 dt_list = root.get("dataTableDTOList") or []
-                
+
                 for it in dt_list:
                     table = it.get("table") or {}
-                    # 遍历表格找行业名称 - 优先找家电相关行业
                     for k, v in table.items():
+                        if k == "headName" or k == "headNameSub" or k == "headDate":
+                            continue
                         if isinstance(v, list) and v:
+                            # 每行可能是 [行业名, 日期] 或单个字符串
                             for item in v:
-                                if isinstance(item, str):
-                                    # 优先匹配家电、制冷、汽车零部件相关行业
-                                    if any(x in item for x in ["家电", "汽车", "制冷", "空调", "零部件", "通用设备", "机械"]):
-                                        if item not in industry_names:
-                                            industry_names.append(item)
-                                    # 排除航天军工类
-                                    elif "航天" in item or "军工" in item or "航空" in item:
-                                        continue
-                                    
+                                if isinstance(item, list) and item:
+                                    name_str = str(item[0])
+                                elif isinstance(item, str):
+                                    name_str = item
+                                else:
+                                    continue
+                                if len(name_str) > 2 and name_str not in industry_names:
+                                    industry_names.append(name_str)
+
                     # 获取行业板块代码
                     field = it.get("field") or {}
                     name = field.get("returnName", "")
                     if "申万" in str(name) or "中信" in str(name):
                         industry_code = it.get("code")
-                        
+
                 if industry_names:
                     break
             except Exception:
                 continue
-                
-        # 如果没有找到合适行业，使用通用设备或机械设备作为备选
-        if not industry_names:
-            industry_names = ["通用设备", "机械设备"]
+
+        # 从行业列表中取最细分的行业（最后一个通常是二级/三级行业）
+        if industry_names:
+            # 优先取含"-"的细分行业（如"通信-通信设备-通信网络设备及器件"）
+            detailed = [x for x in industry_names if "-" in x or "—" in x]
+            if detailed:
+                industry_names = [detailed[-1]]
+            else:
+                industry_names = [industry_names[-1]]
                 
         # 3. 获取行业估值（基于识别出的行业名称）
-        # 构建行业查询列表 - 使用更通用的查询关键词
         industry_val_queries = []
-        
+
         # 添加识别出的行业 - 使用"行业名称 + PE"的通用查询
         for ind_name in industry_names:
             # 提取主要行业名称（去掉分类前缀）
             main_ind = ind_name.split('-')[-1] if '-' in ind_name else ind_name
             industry_val_queries.append((f"{main_ind} PE", main_ind))
             industry_val_queries.append((f"{ind_name} PE", main_ind))
-        
-        # 添加常见对标行业作为备选
-        common_industries = [
-            ("白色家电 PE", "白色家电"),
-            ("汽车零部件 PE", "汽车零部件"),
-            ("通用设备 PE", "通用设备"),
-        ]
-        for ind_name, display_name in common_industries:
-            if not any(ind_name in x[0] for x in industry_val_queries):
-                industry_val_queries.append((ind_name, display_name))
         
         for iq, ind_name in industry_val_queries:
             try:
@@ -515,44 +509,6 @@ def get_valuation_from_dfcf(code: str) -> Dict[str, Any]:
                 except Exception:
                     continue
                 
-        # 如果仍然没有获取到行业数据，使用备选方案查询常见行业
-        if not out["industry_avg"]["pe"] and not out["industry_avg"]["pe_median"]:
-            fallback_industries = [
-                ("白色家电", 11.06, 2.15),   # PE, PB - 已验证可查询
-                ("汽车零部件", None, 2.97),  # PE查不到
-                ("通用设备", None, None),    # 待查询
-                ("机械设备", None, None),
-            ]
-            
-            # 优先使用已验证的白色家电数据作为参考
-            for fb_ind, fb_pe, fb_pb in fallback_industries:
-                if fb_pe is not None:
-                    out["industry_avg"]["pe"] = fb_pe
-                    out["industry_name"] = fb_ind
-                    break
-                    
-            # 如果白色家电也没有，尝试API查询
-            if not out["industry_avg"]["pe"]:
-                for fb_ind in ["通用设备", "机械设备"]:
-                    try:
-                        r = requests.post(url, headers=headers, json={"toolQuery": f"{fb_ind} 市盈率PE(TTM) 市净率PB"}, timeout=15)
-                        if r.status_code != 200:
-                            continue
-                        obj = r.json()
-                        root = (((obj or {}).get("data") or {}).get("data") or {}).get("searchDataResultDTO") or {}
-                        dt_list = root.get("dataTableDTOList") or []
-                        for it in dt_list:
-                            table = it.get("table") or {}
-                            v = _extract_first_numeric_from_table_obj(table)
-                            if v is not None and out["industry_avg"]["pe"] is None:
-                                out["industry_avg"]["pe"] = v
-                                out["industry_name"] = fb_ind
-                                break
-                        if out["industry_avg"]["pe"]:
-                            break
-                    except Exception:
-                        continue
-                
         # 4. 计算PEG（如果有PE和净利润增速）
         if out["pe_ttm"] is not None and out["growth_yoy_pct"] is not None:
             if out["growth_yoy_pct"] > 0:
@@ -594,7 +550,7 @@ def get_industry_valuation(industry_keyword: str) -> Dict[str, Any]:
         "source": "dfcf.skill"
     }
     
-    api_key = os.getenv("EASTMONEY_APIKEY", "")
+    api_key = config.EASTMONEY_APIKEY
     if not api_key:
         return out
         
@@ -874,11 +830,9 @@ def get_baostock_financial(code: str) -> Dict[str, Any]:
 
 def _find_iwencai_skill_dir(skill_subdir: str) -> str:
     """
-    在工作区查找同花顺技能目录。
-    搜索同花顺技能目录（同花顺技能已迁移至 workspace-fiona）。
+    查找同花顺技能目录（位于 config.IWENCAI_SKILLS_ROOT）。
     """
-    skill_root = Path(__file__).resolve().parent.parent.parent.parent / "skills"
-    p = skill_root / skill_subdir
+    p = config.IWENCAI_SKILLS_ROOT / skill_subdir
     if p.exists():
         for sub in p.iterdir():
             if sub.is_dir() and (sub / "scripts" / "cli.py").exists():
@@ -901,10 +855,7 @@ def _call_iwencai_skill(skill_cli_path: str, query: str, timeout: int = 20, extr
             env={
                 **os.environ,
                 "IWENCAI_BASE_URL": "https://openapi.iwencai.com",
-                "IWENCAI_API_KEY": os.environ.get(
-                    "IWENCAI_API_KEY",
-                    "sk-proj-00-eYSCskGL9M4I-hfD-9ODH2IAjVy7y9gH5g1WTMomktTWsM3030hIIn2RN-og5-yzW0Ijvos1XXq8-AJ2TFQVnvCYwZJkLjpFnz8FkIrvR4K3ooS1PHw-KYZxzqy2ZqGVyylBWg"
-                ),
+                "IWENCAI_API_KEY": config.IWENCAI_API_KEY,
             }
         )
         if result.returncode == 0 and result.stdout.strip():
@@ -950,9 +901,9 @@ def get_iwencai_enrichment(code: str, company_name: str = "", industry_name: str
     # 延迟查找 CLI 路径（避免每次 import 都扫描）
     if not hasattr(get_iwencai_enrichment, "_cli_cache"):
         get_iwencai_enrichment._cli_cache = {
-            "industry": _find_iwencai_skill_dir("行业数据查询"),
-            "reports": _find_iwencai_skill_dir("研报搜索"),
-            "business": _find_iwencai_skill_dir("公司经营数据查询"),
+            "industry": _find_iwencai_skill_dir("hithink-industry-query"),
+            "reports": _find_iwencai_skill_dir("report-search"),
+            "business": _find_iwencai_skill_dir("hithink-business-query"),
         }
 
     cli = get_iwencai_enrichment._cli_cache

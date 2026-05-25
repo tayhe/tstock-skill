@@ -6,9 +6,9 @@ from datetime import datetime
 from pathlib import Path
 
 # 自选股数据库路径，可通过环境变量 OPENCLAW_WATCHLIST_DB 覆盖
-# 默认位于 workspace-fiona/memory/watchlist.json
+# 默认位于项目根目录 memory/watchlist.json
 _watchlist_default = str(
-    Path(__file__).resolve().parent.parent.parent.parent / "memory" / "watchlist.json"
+    Path(__file__).resolve().parent.parent.parent / "memory" / "watchlist.json"
 )
 DB = os.environ.get('OPENCLAW_WATCHLIST_DB', _watchlist_default)
 

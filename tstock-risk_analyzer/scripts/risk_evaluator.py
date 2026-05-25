@@ -19,9 +19,9 @@ def get_snapshot(code=None, snapshot=None):
     if snapshot:
         with open(snapshot, 'r', encoding='utf-8') as f:
             return json.load(f)
-    # 相对于脚本位置动态推导 workspace 根路径
-    _ws_root = Path(__file__).resolve().parent.parent.parent.parent
-    script = _ws_root / "skills/tstock-data-source/scripts/data_source.py"
+    # 相对于脚本位置动态推导项目根路径
+    _ws_root = Path(__file__).resolve().parent.parent.parent
+    script = _ws_root / "tstock-data-source/scripts/data_source.py"
     tmp = f'/tmp/{code}_risk_snapshot.json'
     subprocess.run(['python3', script, '--code', code, '--data-type', 'all', '--output', tmp], check=True)
     with open(tmp, 'r', encoding='utf-8') as f:

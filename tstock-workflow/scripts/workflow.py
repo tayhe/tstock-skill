@@ -19,16 +19,16 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-# 动态推导 workspace 根目录（相对于脚本位置）
-# 脚本位于 skills/tstock-workflow/scripts/，向上四级到 workspace 根
-WORKSPACE = Path(__file__).resolve().parent.parent.parent.parent
+# 动态推导项目根目录（相对于脚本位置）
+# 脚本位于 tstock-workflow/scripts/，向上两级到项目根
+WORKSPACE = Path(__file__).resolve().parent.parent.parent
 
 PATHS = {
-    "data_source": WORKSPACE / "skills/tstock-data-source/scripts/data_source.py",
-    "fundamental": WORKSPACE / "skills/tstock-fundamental_analyzer/scripts/fundamental_analyzer.py",
-    "technical": WORKSPACE / "skills/tstock-technical_analyzer/scripts/technical_analyzer.py",
-    "risk": WORKSPACE / "skills/tstock-risk_analyzer/scripts/risk_evaluator.py",
-    "strategy": WORKSPACE / "skills/tstock-portfolio/scripts/strategy_planner.py",
+    "data_source": WORKSPACE / "tstock-data-source/scripts/data_source.py",
+    "fundamental": WORKSPACE / "tstock-fundamental_analyzer/scripts/fundamental_analyzer.py",
+    "technical": WORKSPACE / "tstock-technical_analyzer/scripts/technical_analyzer.py",
+    "risk": WORKSPACE / "tstock-risk_analyzer/scripts/risk_evaluator.py",
+    "strategy": WORKSPACE / "tstock-portfolio/scripts/strategy_planner.py",
 }
 
 

@@ -4,8 +4,13 @@ import json
 import os
 import re
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
+
+# 将项目根目录加入 sys.path，以便导入 config
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+import config
 
 
 def _safe_float(v):
@@ -26,9 +31,9 @@ def _load_snapshot(code=None, snapshot=None):
         with open(snapshot, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    # 相对于脚本位置动态推导 workspace 根路径
-    _ws_root = Path(__file__).resolve().parent.parent.parent.parent
-    script = _ws_root / "skills/tstock-data-source/scripts/data_source.py"
+    # 相对于脚本位置动态推导项目根路径
+    _ws_root = Path(__file__).resolve().parent.parent.parent
+    script = _ws_root / "tstock-data-source/scripts/data_source.py"
     tmp = f'/tmp/{code}_snapshot.json'
     cmd = ['python3', script, '--code', code, '--data-type', 'all', '--output', tmp]
     subprocess.run(cmd, check=True)
@@ -38,8 +43,7 @@ def _load_snapshot(code=None, snapshot=None):
 
 def _search_with_minimax(query: str) -> str:
     """优先调用 minimax-web-search（中文支持好，无需 API Key）。"""
-    _root = Path(__file__).resolve().parent.parent.parent.parent
-    script = _root / 'skills/minimax-web-search/scripts/web_search.py'
+    script = config.MINIMAX_WEB_SEARCH
     if not os.path.exists(script):
         return ''
     try:
@@ -54,8 +58,7 @@ def _search_with_minimax(query: str) -> str:
 
 def _search_with_tavily(query: str) -> str:
     """备选：调用 tavily-search（需 node + API key）。"""
-    _root = Path(__file__).resolve().parent.parent.parent.parent.parent
-    script = _root / 'skills/tavily-search-1-0-0/scripts/search.mjs'
+    script = config.TAVILY_SEARCH
     if not os.path.exists(script):
         return ''
     try:

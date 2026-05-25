@@ -26,31 +26,44 @@ pip install akshare pandas requests
 pip install baostock        # 可选，推荐作为财务备份数据源
 ```
 
-### 环境变量（可选）
+### 配置（config.py）
 
-```bash
-# 东方财富 API Key（用于 PE/PB/PEG 等估值数据，可不填使用基础功能）
-export EASTMONEY_APIKEY="your_key"
+外部技能路径和 API Key 统一在项目根目录 `config.py` 中管理，优先级：**环境变量 > config.py 默认值**。
 
-# 自选股数据库路径（使用 tstock-portfolio 技能时需要）
-export OPENCLAW_WATCHLIST_DB="/your/path/to/watchlist.json"
-```
+#### API Keys
+
+| 变量 | 用途 | 获取方式 |
+|------|------|----------|
+| `EASTMONEY_APIKEY` | 东方财富 PE/PB/PEG 及行业估值 | [marketing.dfcfs.com](https://marketing.dfcfs.com/) |
+| `IWENCAI_API_KEY` | 同花顺行业数据、研报、经营数据 | [iwencai.com](https://www.iwencai.com/) |
+
+不设置时相关功能自动降级跳过，不影响其他模块运行。
+
+#### 外部技能路径
+
+| 变量 | 用途 | 默认值 |
+|------|------|--------|
+| `SEARCH_SKILLS_ROOT` | 搜索系列（minimax-web-search、tavily-search） | `~/.openclaw/skills` |
+| `IWENCAI_SKILLS_ROOT` | 同花顺系列（行业数据、研报、经营数据） | `~/.openclaw/workspace-fiona/skills` |
+| `EASTMONEY_SKILLS_ROOT` | 东方财富系列（financial-data、financial-search、select-stock） | `~/.openclaw/workspace-fiona/skills` |
+
+各系列可指向不同路径，互不影响。
 
 ### 基本用法
 
 ```bash
 # 完整分析流程（由 tstock-workflow 编排）
-python skills/tstock-workflow/scripts/workflow.py --code 300308
+python tstock-workflow/scripts/workflow.py --code 300308
 
 # 单独使用各技能
-python skills/tstock-data-source/scripts/data_source.py --code 600118 --data-type all --output /tmp/600118.json
-python skills/tstock-fundamental_analyzer/scripts/fundamental_analyzer.py --code 300308 --output /tmp/fundamental.json
-python skills/tstock-technical_analyzer/scripts/technical_analyzer.py --code 300308 --output /tmp/tech.json
-python skills/tstock-risk_analyzer/scripts/risk_evaluator.py --code 300308 --output /tmp/risk.json
+python tstock-data-source/scripts/data_source.py --code 600118 --data-type all --output /tmp/600118.json
+python tstock-fundamental_analyzer/scripts/fundamental_analyzer.py --code 300308 --output /tmp/fundamental.json
+python tstock-technical_analyzer/scripts/technical_analyzer.py --code 300308 --output /tmp/tech.json
+python tstock-risk_analyzer/scripts/risk_evaluator.py --code 300308 --output /tmp/risk.json
 
 # 自选池管理
-python skills/tstock-portfolio/scripts/watchlist_manager.py add --code 300308 --name 中际旭创 --group AI算力
-python skills/tstock-portfolio/scripts/watchlist_manager.py list
+python tstock-portfolio/scripts/watchlist_manager.py add --code 300308 --name 中际旭创 --group AI算力
+python tstock-portfolio/scripts/watchlist_manager.py list
 ```
 
 ---
@@ -58,27 +71,28 @@ python skills/tstock-portfolio/scripts/watchlist_manager.py list
 ## 📂 目录结构
 
 ```
-skills/
-├── README.md              ← 你在这里
+tstock-skills/
+├── README.md
 ├── LICENSE
 ├── .gitignore
+├── config.py                 ← 外部技能路径配置
 │
-├── tstock-workflow/     ← 编排器（统一入口）
+├── tstock-workflow/          ← 编排器（统一入口）
 │   └── SKILL.md
 │
-├── tstock-data-source/  ← 数据源
+├── tstock-data-source/       ← 数据源
 │   └── SKILL.md
 │
-├── tstock-fundamental_analyzer/    ← 基本面分析
+├── tstock-fundamental_analyzer/  ← 基本面分析
 │   └── SKILL.md
 │
-├── tstock-technical_analyzer/       ← 技术面分析
+├── tstock-technical_analyzer/    ← 技术面分析
 │   └── SKILL.md
 │
-├── tstock-risk_analyzer/           ← 风险评估
+├── tstock-risk_analyzer/     ← 风险评估
 │   └── SKILL.md
 │
-└── tstock-portfolio/                ← 组合管理
+└── tstock-portfolio/         ← 组合管理
     └── SKILL.md
 ```
 

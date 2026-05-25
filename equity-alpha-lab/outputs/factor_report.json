@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "generated_at": "2026-03-14T02:48:23.398689",
+    "market": "cn_a",
+    "universe": "csi800",
+    "start_date": "2019-01-01",
+    "end_date": "2025-12-31",
+    "rebalance": "weekly"
+  },
+  "factor_definition": {
+    "name": "quality_roe_stability",
+    "economic_rationale": "higher profitability persistence may predict cross-sectional returns",
+    "formula": "zscore(roe_ttm) - 0.5*zscore(roe_vol_3y)",
+    "direction": "positive",
+    "pit_risk": "medium"
+  },
+  "single_factor": {
+    "coverage": null,
+    "rank_ic_mean": null,
+    "ic_ir": null,
+    "ic_positive_ratio": null,
+    "decay": {},
+    "portfolio": {
+      "long_short_ann_return": null,
+      "long_short_sharpe": null,
+      "max_drawdown": null,
+      "turnover": null,
+      "cost_adjusted_return": null
+    },
+    "stability": {
+      "rolling_12m_rank_ic": [],
+      "recent_24m_status": "pending"
+    }
+  },
+  "decision": {
+    "pass": false,
+    "confidence": "low",
+    "reasons": [
+      "V1 scaffold only: connect data + evaluation modules"
+    ]
+  }
+}
