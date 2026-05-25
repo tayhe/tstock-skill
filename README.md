@@ -80,9 +80,12 @@ uv run python tstock-portfolio/scripts/watchlist_manager.py list
 ```
 tstock-skills/
 ├── README.md
+├── CLAUDE.md                 ← Claude Code 项目指引
 ├── LICENSE
 ├── .gitignore
-├── config.py                 ← 外部技能路径配置
+├── pyproject.toml            ← 项目依赖声明
+├── uv.lock                   ← 依赖版本锁定
+├── config.py                 ← 外部技能路径与 API Key 配置
 │
 ├── tstock-workflow/          ← 编排器（统一入口）
 │   └── SKILL.md
