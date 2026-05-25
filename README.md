@@ -34,10 +34,11 @@ pip install baostock        # 可选，推荐作为财务备份数据源
 
 | 变量 | 用途 | 获取方式 |
 |------|------|----------|
-| `EASTMONEY_APIKEY` | 东方财富 PE/PB/PEG 及行业估值 | [marketing.dfcfs.com](https://marketing.dfcfs.com/) |
+| `EASTMONEY_APIKEY` | 东方财富 PE/PB/PEG 及行业估值（免费版每日 150 次） | [marketing.dfcfs.com](https://marketing.dfcfs.com/) |
+| `IWENCAI_BASE_URL` | 同花顺 API 地址 | 默认 `https://openapi.iwencai.com` |
 | `IWENCAI_API_KEY` | 同花顺行业数据、研报、经营数据 | [iwencai.com](https://www.iwencai.com/) |
 
-不设置时相关功能自动降级跳过，不影响其他模块运行。
+不设置时相关功能自动降级跳过，不影响其他模块运行。东方财富 API 限流时也会自动降级到 AkShare/腾讯。
 
 #### 外部技能路径
 
@@ -53,7 +54,7 @@ pip install baostock        # 可选，推荐作为财务备份数据源
 
 ```bash
 # 完整分析流程（由 tstock-workflow 编排）
-python tstock-workflow/scripts/workflow.py --code 300308
+python tstock-workflow/scripts/workflow.py 300308
 
 # 单独使用各技能
 python tstock-data-source/scripts/data_source.py --code 600118 --data-type all --output /tmp/600118.json

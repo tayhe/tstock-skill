@@ -50,7 +50,7 @@ workflow.py (orchestrator)
 
 **External skill dependencies**: `fundamental_analyzer.py` calls `minimax-web-search` and `tavily-search` (for qualitative web research). `data_source.py` optionally calls 同花顺 (iwencai) skills. 东方财富 skills are available but currently unused (data comes via direct HTTP API). Each series has its own root variable in `config.py`, overridable via `SEARCH_SKILLS_ROOT`, `IWENCAI_SKILLS_ROOT`, and `EASTMONEY_SKILLS_ROOT` env vars.
 
-**Data source priority**: AkShare (primary) → Baostock (backup) → 东方财富 (PE/PB/PEG, needs `EASTMONEY_APIKEY`) → 腾讯 (PE/PB fallback) → 同花顺 (optional enrichment via external skills).
+**Data source priority**: 东方财富 (PE/PB/PEG/industry, needs `EASTMONEY_APIKEY`, free tier 150 calls/day) → AkShare (spot行情+行业均值) → Baostock (财务备份) → 腾讯 (PE/PB兜底). 同花顺为可选增强（行业分类、研报、经营数据）。东方财富限流时自动降级到 AkShare/腾讯。
 
 **Qualitative search cascade** (fundamental_analyzer): `minimax-web-search` (preferred, good Chinese support) → `tavily-search` (fallback). `eastmoney-financial-search` is called separately for precise financial queries.
 
@@ -75,13 +75,14 @@ pip install baostock  # optional, backup financial data source
 All external paths and API keys are centralized in `config.py`. Priority: env var > config.py default.
 
 **API Keys:**
-- `EASTMONEY_APIKEY` — 东方财富 API key (enables PE/PB/PEG + industry valuation)
+- `EASTMONEY_APIKEY` — 东方财富 API key (enables PE/PB/PEG + industry valuation, free tier: 150 calls/day)
 - `IWENCAI_API_KEY` — 同花顺 API key (enables industry data, reports, business data)
+- `IWENCAI_BASE_URL` — 同花顺 API 地址 (defaults to `https://openapi.iwencai.com`)
 
 **External skill paths:**
 - `SEARCH_SKILLS_ROOT` — minimax-web-search, tavily-search (defaults to `~/.openclaw/skills`)
-- `IWENCAI_SKILLS_ROOT` — 同花顺系列 (defaults to `~/.openclaw/workspace-fiona/skills`)
-- `EASTMONEY_SKILLS_ROOT` — 东方财富系列 (defaults to `~/.openclaw/workspace-fiona/skills`)
+- `IWENCAI_SKILLS_ROOT` — 同花顺系列 (defaults to `~/Projects/iwencai-skills`)
+- `EASTMONEY_SKILLS_ROOT` — 东方财富系列 (defaults to `~/Projects/eastmoney-skills`)
 
 **Other:**
 - `OPENCLAW_WATCHLIST_DB` — watchlist JSON path (defaults to `{project_root}/memory/watchlist.json`)
