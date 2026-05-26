@@ -134,7 +134,7 @@ def get_iwencai_enrichment(code: str, company_name: str = "", industry_name: str
 
         # 补充查询行业 PB（行业 PE 查询通常不返回 PB）
         if _industry_name:
-            pb_data = _call_iwencai_skill(cli["industry"], f"{_industry_name} 行业市净率")
+            pb_data = _call_iwencai_skill(cli["industry"], f"{_industry_name} PB")
             if pb_data.get("success") and pb_data.get("datas"):
                 out["industry_pb"] = {
                     "query": pb_data.get("query", ""),
