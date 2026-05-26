@@ -5,9 +5,23 @@ from typing import Any, Dict
 from tstock_lib.utils import safe_float
 
 
-def _transform_valuation_comparable(raw: Dict[str, Any]) -> Dict[str, Any]:
+def _pick_field(d, *keys):
+    """从 dict 中按优先级提取数值字段，支持部分键名匹配。"""
+    for k in keys:
+        for dk, dv in d.items():
+            if k in dk and dv is not None and dv != '--' and dv != '':
+                try:
+                    return float(dv)
+                except (ValueError, TypeError):
+                    continue
+    return None
+
+
+def _transform_valuation_comparable(raw: Dict[str, Any], stock_val: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     将同花顺行业数据 + 个股估值原始字段，转换为干净、与数据源解耦的估值对比结构。
+    raw: 行业查询结果（含 items 列表）
+    stock_val: 个股 PE/PB 查询结果（单条 dict）
     """
     out = {
         "stock_pe_ttm": None,
@@ -25,35 +39,34 @@ def _transform_valuation_comparable(raw: Dict[str, Any]) -> Dict[str, Any]:
         return out
 
     items = raw.get("items", []) if raw.get("items") else []
-    if not items:
-        return out
 
-    item = items[0]
+    # 从个股查询结果提取 PE/PB
+    if stock_val:
+        out["stock_pe_ttm"] = _pick_field(stock_val, "市盈率ttm", "市盈率TTM", "市盈率")
+        out["stock_pb"] = _pick_field(stock_val, "市净率", "PB")
 
-    def _pick_field(d, *keys):
-        for k in keys:
-            if k in d:
-                v = d[k]
-                if v is not None and v != '--' and v != '':
-                    return float(v) if isinstance(v, (int, float)) else None
-        return None
-
-    out["stock_pe_dynamic"] = _pick_field(item, "动态市盈率", "市盈率")
-    out["stock_pe_ttm"]    = _pick_field(item, "市盈率", "动态市盈率")
-    out["stock_pb"]        = _pick_field(item, "市净率", "PB")
-    out["stock_pr"]        = _pick_field(item, "市销率", "PR")
-
+    # 从行业样本计算中位数
     pe_vals = []
     pb_vals = []
     industry_name = None
     for it in items:
         for k, v in it.items():
             if "市盈率" in k and v is not None and not isinstance(v, str):
-                pe_vals.append(float(v))
+                try:
+                    pe_vals.append(float(v))
+                except (ValueError, TypeError):
+                    pass
             if "市净率" in k and v is not None and not isinstance(v, str):
-                pb_vals.append(float(v))
-        if not industry_name and it.get("指数简称"):
-            industry_name = it.get("指数简称")
+                try:
+                    pb_vals.append(float(v))
+                except (ValueError, TypeError):
+                    pass
+        if not industry_name:
+            ind = it.get("所属同花顺行业") or it.get("所属申万行业")
+            if isinstance(ind, list) and ind:
+                industry_name = ind[0]
+            elif ind:
+                industry_name = str(ind)
 
     if pe_vals:
         pe_vals_sorted = sorted(pe_vals)
@@ -61,10 +74,14 @@ def _transform_valuation_comparable(raw: Dict[str, Any]) -> Dict[str, Any]:
         out["industry_pe_median"] = pe_vals_sorted[n // 2] if n % 2 == 1 else (
             pe_vals_sorted[n // 2 - 1] + pe_vals_sorted[n // 2]) / 2
     if pb_vals:
-        out["industry_pb_median"] = sum(pb_vals) / len(pb_vals)
+        pb_vals_sorted = sorted(pb_vals)
+        n = len(pb_vals_sorted)
+        out["industry_pb_median"] = pb_vals_sorted[n // 2] if n % 2 == 1 else (
+            pb_vals_sorted[n // 2 - 1] + pb_vals_sorted[n // 2]) / 2
     if industry_name:
         out["industry_name"] = industry_name
 
+    # 计算溢价率
     if out["stock_pe_ttm"] and out["industry_pe_median"]:
         out["premium_vs_industry_pe_pct"] = round(
             (out["stock_pe_ttm"] - out["industry_pe_median"]) / out["industry_pe_median"] * 100, 2
@@ -138,11 +155,13 @@ def transform_snapshot(snap: Dict[str, Any]) -> Dict[str, Any]:
 
     # 1) 估值对比
     ind_raw = iw.get("industry", {})
+    stock_val = iw.get("stock_valuation", {})
     if ind_raw and isinstance(ind_raw, dict):
-        vc = _transform_valuation_comparable(ind_raw)
+        vc = _transform_valuation_comparable(ind_raw, stock_val)
     else:
         vc = {}
 
+    # 从 valuation_stable / basic 补充缺失的个股 PE/PB
     if vc.get("stock_pe_ttm") is None:
         val_stable = snap.get("valuation_stable", {})
         if val_stable and val_stable.get("pe_ttm") is not None:
@@ -158,6 +177,27 @@ def transform_snapshot(snap: Dict[str, Any]) -> Dict[str, Any]:
                 (vc["stock_pe_ttm"] - vc["industry_pe_median"]) / vc["industry_pe_median"] * 100, 2)
 
     out["valuation_comparable"] = vc
+
+    # 2) 用 iwencai 行业数据补充 valuation_stable（当 dfcf/akshare 未提供行业均值时）
+    vs = out.get("valuation_stable", {})
+    if vs:
+        avg = vs.get("industry_avg", {})
+        if avg.get("pe") is None and avg.get("pe_median") is None:
+            if vc.get("industry_pe_median") is not None:
+                avg["pe"] = vc["industry_pe_median"]
+        if avg.get("pb") is None and avg.get("pb_median") is None:
+            if vc.get("industry_pb_median") is not None:
+                avg["pb"] = vc["industry_pb_median"]
+        if not vs.get("industry_name") and vc.get("industry_name"):
+            vs["industry_name"] = vc["industry_name"]
+        # 重新计算溢价率
+        pe基准 = avg.get("pe_median") or avg.get("pe")
+        pb基准 = avg.get("pb_median") or avg.get("pb")
+        prem = vs.get("premium_pct", {})
+        if vs.get("pe_ttm") is not None and pe基准 is not None and pe基准 != 0 and prem.get("pe") is None:
+            prem["pe"] = round((vs["pe_ttm"] - pe基准) / pe基准 * 100, 2)
+        if vs.get("pb") is not None and pb基准 is not None and pb基准 != 0 and prem.get("pb") is None:
+            prem["pb"] = round((vs["pb"] - pb基准) / pb基准 * 100, 2)
 
     # 2) 结构化研报
     rep_raw = iw.get("reports", {})

@@ -132,6 +132,12 @@ def get_iwencai_enrichment(code: str, company_name: str = "", industry_name: str
                 "source": "iwencai.industry_query",
             }
 
+        # 补充查询个股自身 PE/PB（行业查询返回的是行业样本，不含目标个股）
+        if code:
+            stock_data = _call_iwencai_skill(cli["industry"], f"{code} 市盈率TTM 市净率PB")
+            if stock_data.get("success") and stock_data.get("datas"):
+                out["stock_valuation"] = stock_data["datas"][0] if stock_data["datas"] else {}
+
     # 2) 最新研报
     if cli["reports"] and company_name:
         text = _call_iwencai_skill(cli["reports"], company_name, extra_args=["-f", "text", "-l", "3"], as_text=True)
