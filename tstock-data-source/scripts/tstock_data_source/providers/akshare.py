@@ -34,7 +34,7 @@ def get_basic_from_ak(code: str) -> Dict[str, Any]:
     }
 
 
-def get_market_from_ak(code: str, days: int = 60) -> Dict[str, Any]:
+def get_market_from_ak(code: str, days: int = 150) -> Dict[str, Any]:
     end_date = datetime.now().strftime('%Y%m%d')
     start_date = (datetime.now() - timedelta(days=days)).strftime('%Y%m%d')
     df = ak.stock_zh_a_hist(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
@@ -50,7 +50,7 @@ def get_market_from_ak(code: str, days: int = 60) -> Dict[str, Any]:
         "high_60d": safe_float(df["最高"].max()),
         "low_60d": safe_float(df["最低"].min()),
         "avg_volume_20d": safe_float(df.tail(20)["成交量"].mean()),
-        "price_data": df.tail(30).to_dict(orient="records"),
+        "price_data": df.tail(120).to_dict(orient="records"),
         "source": "akshare"
     }
 

@@ -64,6 +64,7 @@ def analyze(snapshot):
     last = df.iloc[-1]
     close = float(last['close']) if pd.notna(last['close']) else None
 
+    ma5 = float(last['ma5']) if pd.notna(last.get('ma5')) else None
     ma20 = float(last['ma20']) if pd.notna(last.get('ma20')) else None
     ma60 = float(last['ma60']) if pd.notna(last.get('ma60')) else None
 
@@ -74,6 +75,13 @@ def analyze(snapshot):
             trend = '空头'
         else:
             trend = '震荡'
+    elif close and ma5 and ma20:
+        if close > ma5 > ma20:
+            trend = '短多（数据不足60日，基于MA5/MA20判断）'
+        elif close < ma5 < ma20:
+            trend = '短空（数据不足60日，基于MA5/MA20判断）'
+        else:
+            trend = '震荡（数据不足60日，基于MA5/MA20判断）'
     else:
         trend = '数据不足'
 
