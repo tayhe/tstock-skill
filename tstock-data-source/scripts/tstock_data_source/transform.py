@@ -153,9 +153,19 @@ def transform_snapshot(snap: Dict[str, Any]) -> Dict[str, Any]:
     out = dict(snap)
     iw = snap.get("iwencai", {})
 
-    # 1) 估值对比
+    # 1) 估值对比（合并行业 PE 和行业 PB 查询结果）
     ind_raw = iw.get("industry", {})
+    ind_pb_raw = iw.get("industry_pb", {})
     stock_val = iw.get("stock_valuation", {})
+
+    # 合并行业 PB items 到行业 PE items
+    if ind_raw and isinstance(ind_raw, dict) and ind_pb_raw and isinstance(ind_pb_raw, dict):
+        merged_items = list(ind_raw.get("items", []))
+        for pb_item in ind_pb_raw.get("items", []):
+            if pb_item not in merged_items:
+                merged_items.append(pb_item)
+        ind_raw = {**ind_raw, "items": merged_items}
+
     if ind_raw and isinstance(ind_raw, dict):
         vc = _transform_valuation_comparable(ind_raw, stock_val)
     else:
