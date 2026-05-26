@@ -19,10 +19,14 @@ logger = logging.getLogger(__name__)
 
 def _find_iwencai_skill_dir(skill_subdir: str) -> str:
     p = config.IWENCAI_SKILLS_ROOT / skill_subdir
-    if p.exists():
-        for sub in p.iterdir():
-            if sub.is_dir() and (sub / "scripts" / "cli.py").exists():
-                return str(sub / "scripts" / "cli.py")
+    if not p.exists():
+        return ""
+    cli = p / "scripts" / "cli.py"
+    if cli.exists():
+        return str(cli)
+    for sub in p.iterdir():
+        if sub.is_dir() and (sub / "scripts" / "cli.py").exists():
+            return str(sub / "scripts" / "cli.py")
     return ""
 
 
