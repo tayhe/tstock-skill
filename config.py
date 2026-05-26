@@ -55,8 +55,11 @@ WATCHLIST_DB = Path(os.environ.get(
 
 # 东方财富 API Key（用于 PE/PB/PEG 及行业估值数据）
 # 获取：https://marketing.dfcfs.com/
-EASTMONEY_APIKEY = os.environ.get("EASTMONEY_APIKEY", "")
+EASTMONEY_APIKEY = os.environ.get("EASTMONEY_APIKEY", "mkt_0ELIRboa3w7joBoeI7V1BRNJ4wrHX3j-haFqKJ5rpPo")
 
 # 同花顺 API（用于行业数据查询、研报搜索、公司经营数据查询）
 IWENCAI_BASE_URL = os.environ.get("IWENCAI_BASE_URL", "https://openapi.iwencai.com")
-IWENCAI_API_KEY = os.environ.get("IWENCAI_API_KEY", "")
+IWENCAI_API_KEY = os.environ.get("IWENCAI_API_KEY", "sk-proj-00-eYSCskGL9M4I-hfD-9ODH2IAjVy7y9gH5g1WTMomktTWsM3030hIIn2RN-og5-yzW0Ijvos1XXq8-AJ2TFQVnvCYwZJkLjpFnz8FkIrvR4K3ooS1PHw-KYZxzqy2ZqGVyylBWg")
+
+# Minimax API Key（用于定性信息搜索）
+MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "sk-cp-FqfsGBAtePc-YyDls_x9S3B2DYQsp3IQpSSe5AM0DBVRE19Z5-PbdJ2ADlTzc2ZSWw-NSX_eiq0o5-fk171SLtIduTDTvK6NTcwM2Nhr1MUPDnVEJy-zWe0")

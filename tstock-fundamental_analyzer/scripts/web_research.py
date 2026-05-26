@@ -23,9 +23,11 @@ def _search_with_minimax(query: str) -> str:
     if not os.path.exists(script):
         return ''
     try:
+        env = {**os.environ, 'MINIMAX_API_KEY': config.MINIMAX_API_KEY}
         p = subprocess.run(
             ['python3', str(script), query],
-            capture_output=True, text=True, timeout=60
+            capture_output=True, text=True, timeout=60,
+            env=env
         )
         return p.stdout if p.returncode == 0 else ''
     except Exception as e:
