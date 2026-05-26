@@ -35,6 +35,22 @@ EASTMONEY_SKILLS_ROOT = Path(os.environ.get(
     str(Path.home() / "Projects/eastmoney-skills"),
 ))
 
+# ── 本地数据路径 ──────────────────────────────────────────────────────────────
+# 项目根目录（基于 config.py 所在位置推导）
+PROJECT_ROOT = Path(__file__).resolve().parent
+
+# 分析报告输出目录
+REPORT_DIR = Path(os.environ.get(
+    "TSTOCK_REPORT_DIR",
+    str(PROJECT_ROOT / "memory" / "股票分析"),
+))
+
+# 自选股数据库路径
+WATCHLIST_DB = Path(os.environ.get(
+    "OPENCLAW_WATCHLIST_DB",
+    str(PROJECT_ROOT / "memory" / "watchlist.json"),
+))
+
 # ── API Keys ────────────────────────────────────────────────────────────────
 
 # 东方财富 API Key（用于 PE/PB/PEG 及行业估值数据）

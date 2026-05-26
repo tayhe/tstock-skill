@@ -21,9 +21,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
+import config
 from tstock_lib.logging_config import setup_logging
 from tstock_lib.paths import (
-    PROJECT_ROOT,
     DATA_SOURCE_SCRIPT,
     FUNDAMENTAL_SCRIPT,
     TECHNICAL_SCRIPT,
@@ -168,7 +168,7 @@ def _save_knowledge_report(report: dict) -> str:
     date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     stock_name = report.get("name") or report.get("code")
     safe_name = str(stock_name).replace("/", "-").replace("\\", "-")
-    out_dir = PROJECT_ROOT / "memory/股票分析"
+    out_dir = config.REPORT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / f"{safe_name}-{date_str}.md"
 

@@ -9,14 +9,9 @@ from pathlib import Path
 # 确保项目根目录在 sys.path 中，以便导入 tstock 包
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from tstock_lib.paths import PROJECT_ROOT
+import config
 
-# 自选股数据库路径，可通过环境变量 OPENCLAW_WATCHLIST_DB 覆盖
-# 默认位于项目根目录 memory/watchlist.json
-DB = os.environ.get(
-    'OPENCLAW_WATCHLIST_DB',
-    str(PROJECT_ROOT / "memory" / "watchlist.json"),
-)
+DB = str(config.WATCHLIST_DB)
 
 
 def load_db():
