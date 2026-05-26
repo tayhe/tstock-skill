@@ -65,7 +65,7 @@ tstock_lib/ (shared library)
 
 **External skill dependencies**: `fundamental_analyzer.py` calls `minimax-web-search` and `tavily-search` (for qualitative web research). `tstock_data_source/providers/iwencai.py` optionally calls 同花顺 skills. Each series has its own root variable in `config.py`, overridable via `SEARCH_SKILLS_ROOT`, `IWENCAI_SKILLS_ROOT`, and `EASTMONEY_SKILLS_ROOT` env vars.
 
-**Data source priority**: 东方财富 (PE/PB/PEG/industry, needs `EASTMONEY_APIKEY`, free tier 150 calls/day) → AkShare (spot行情+行业均值) → Baostock (财务备份) → 腾讯 (PE/PB兜底). 同花顺为可选增强（行业分类、研报、经营数据）。东方财富限流时自动降级到 AkShare/腾讯。
+**Data source priority**: 东方财富 (PE/PB/PEG/industry, needs `EASTMONEY_APIKEY`, free tier 150 calls/day) → AkShare (spot行情+行业均值) → Baostock (财务备份) → 腾讯 (PE/PB兜底). 同花顺为可选增强（行业分类、研报、经营数据）。东方财富限流时自动降级到同花顺/AkShare/腾讯。同花顺行业估值通过 iwencai skills 获取，需 `IWENCAI_API_KEY`。
 
 **Qualitative search cascade** (fundamental_analyzer): `minimax-web-search` (preferred, good Chinese support) → `tavily-search` (fallback). `eastmoney-financial-search` is called separately for precise financial queries.
 
@@ -97,11 +97,13 @@ All external paths and API keys are centralized in `config.py`. Priority: env va
 - `EASTMONEY_APIKEY` — 东方财富 API key (enables PE/PB/PEG + industry valuation, free tier: 150 calls/day)
 - `IWENCAI_API_KEY` — 同花顺 API key (enables industry data, reports, business data)
 - `IWENCAI_BASE_URL` — 同花顺 API 地址 (defaults to `https://openapi.iwencai.com`)
+- `MINIMAX_API_KEY` — minimax-web-search API key (enables qualitative web research)
 
 **External skill paths:**
 - `SEARCH_SKILLS_ROOT` — minimax-web-search, tavily-search (defaults to `~/.openclaw/skills`)
 - `IWENCAI_SKILLS_ROOT` — 同花顺系列 (defaults to `~/Projects/iwencai-skills`)
 - `EASTMONEY_SKILLS_ROOT` — 东方财富系列 (defaults to `~/Projects/eastmoney-skills`)
 
-**Other:**
+**Output paths:**
+- `TSTOCK_REPORT_DIR` — 分析报告输出目录 (defaults to `{project_root}/memory/股票分析`)
 - `OPENCLAW_WATCHLIST_DB` — watchlist JSON path (defaults to `{project_root}/memory/watchlist.json`)
