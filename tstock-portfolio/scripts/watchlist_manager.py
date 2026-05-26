@@ -9,7 +9,7 @@ from pathlib import Path
 # 确保项目根目录在 sys.path 中，以便导入 tstock 包
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from tstock.paths import PROJECT_ROOT
+from tstock_lib.paths import PROJECT_ROOT
 
 # 自选股数据库路径，可通过环境变量 OPENCLAW_WATCHLIST_DB 覆盖
 # 默认位于项目根目录 memory/watchlist.json

@@ -9,10 +9,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from tstock.logging_config import setup_logging
-from tstock.utils import safe_float
-from tstock.snapshot import load_snapshot
-from tstock.constants import (
+from tstock_lib.logging_config import setup_logging
+from tstock_lib.utils import safe_float
+from tstock_lib.snapshot import load_snapshot
+from tstock_lib.constants import (
     SCORE_BASE, SCORE_STRONG, SCORE_NEUTRAL, SCORE_WEAK,
     ROE_EXCELLENT, ROE_GOOD, NET_MARGIN_GOOD, NET_MARGIN_LOW,
     DEBT_SAFE, PE_PCT_HIGH, PE_PCT_LOW,

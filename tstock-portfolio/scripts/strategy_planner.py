@@ -6,8 +6,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from tstock.logging_config import setup_logging
-from tstock.constants import (
+from tstock_lib.logging_config import setup_logging
+from tstock_lib.constants import (
     SCORE_STRONG, SCORE_NEUTRAL, SCORE_WEAK,
     WEIGHT_FUNDAMENTAL, WEIGHT_TECHNICAL, WEIGHT_RISK,
 )

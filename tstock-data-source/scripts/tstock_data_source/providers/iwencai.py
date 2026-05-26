@@ -12,7 +12,7 @@ from typing import Any, Dict
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent.parent))
 import config
 
-from tstock.constants import HTTP_TIMEOUT_IWENCAI
+from tstock_lib.constants import HTTP_TIMEOUT_IWENCAI
 
 logger = logging.getLogger(__name__)
 

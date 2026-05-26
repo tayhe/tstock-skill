@@ -51,7 +51,7 @@ workflow.py (orchestrator)
   ├─► risk_evaluator.py       # Reads snapshot + fundamental JSON → risk score (0-100)
   └─► strategy_planner.py     # Reads fundamental + technical + risk → action/position/stop
 
-tstock/ (shared library)
+tstock_lib/ (shared library)
   ├── utils.py     # safe_float, normalize_code, with_exchange_prefix, to_bs_code
   ├── paths.py     # PROJECT_ROOT, all script path constants
   ├── constants.py # 魔法数字（评分阈值、HTTP 超时、风险门槛等）
@@ -61,7 +61,7 @@ tstock/ (shared library)
 
 **Data flow**: Each downstream skill accepts either `--code` (fetched fresh) or `--snapshot` (reuses existing JSON). The orchestrator always passes snapshot paths via subprocess to avoid re-fetching.
 
-**Path resolution**: Every script inserts the project root into `sys.path` so `tstock` and `config` are importable. `data_source.py` additionally adds `scripts/` to `sys.path` for the `tstock_data_source` package. Skills live at `{project_root}/tstock-{name}/scripts/`.
+**Path resolution**: Every script inserts the project root into `sys.path` so `tstock_lib` and `config` are importable. `data_source.py` additionally adds `scripts/` to `sys.path` for the `tstock_data_source` package. Skills live at `{project_root}/tstock-{name}/scripts/`.
 
 **External skill dependencies**: `fundamental_analyzer.py` calls `minimax-web-search` and `tavily-search` (for qualitative web research). `tstock_data_source/providers/iwencai.py` optionally calls 同花顺 skills. Each series has its own root variable in `config.py`, overridable via `SEARCH_SKILLS_ROOT`, `IWENCAI_SKILLS_ROOT`, and `EASTMONEY_SKILLS_ROOT` env vars.
 
@@ -73,7 +73,7 @@ tstock/ (shared library)
 
 ## Key Conventions
 
-- Shared utilities live in `tstock/` package — never duplicate `safe_float`, path resolution, or constants
+- Shared utilities live in `tstock_lib/` package — never duplicate `safe_float`, path resolution, or constants
 - Data source logic lives in `tstock_data_source/` package — `data_source.py` is a thin shim
 - All inter-skill data passes through JSON files, never direct function calls
 - All numeric fields use `safe_float()` helper — returns `None` for `"--"`, `"nan"`, empty strings

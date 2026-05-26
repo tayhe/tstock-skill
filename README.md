@@ -92,7 +92,7 @@ tstock-skills/
 ├── uv.lock                   ← 依赖版本锁定
 ├── config.py                 ← 外部技能路径与 API Key 配置
 │
-├── tstock/                   ← 共享工具库（所有 skill 共用）
+├── tstock_lib/               ← 共享工具库（所有 skill 共用）
 │   ├── utils.py              # safe_float, normalize_code 等
 │   ├── paths.py              # 路径常量
 │   ├── constants.py          # 魔法数字集中管理

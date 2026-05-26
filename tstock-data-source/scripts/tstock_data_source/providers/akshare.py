@@ -8,8 +8,8 @@ from typing import Any, Dict
 import akshare as ak
 import pandas as pd
 
-from tstock.utils import safe_float, with_exchange_prefix
-from tstock.constants import RETRY_BACKOFF
+from tstock_lib.utils import safe_float, with_exchange_prefix
+from tstock_lib.constants import RETRY_BACKOFF
 
 logger = logging.getLogger(__name__)
 

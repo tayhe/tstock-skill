@@ -21,8 +21,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from tstock.logging_config import setup_logging
-from tstock.paths import (
+from tstock_lib.logging_config import setup_logging
+from tstock_lib.paths import (
     PROJECT_ROOT,
     DATA_SOURCE_SCRIPT,
     FUNDAMENTAL_SCRIPT,

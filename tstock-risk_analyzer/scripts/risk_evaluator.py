@@ -6,10 +6,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from tstock.logging_config import setup_logging
-from tstock.utils import safe_float
-from tstock.snapshot import load_snapshot
-from tstock.constants import (
+from tstock_lib.logging_config import setup_logging
+from tstock_lib.utils import safe_float
+from tstock_lib.snapshot import load_snapshot
+from tstock_lib.constants import (
     RISK_PE_HIGH, RISK_PE_MED, RISK_PB_HIGH, RISK_PE_PCT_HIGH,
     RISK_DEBT_HIGH, RISK_DEBT_MED, RISK_CURRENT_LOW,
     RISK_MCAP_SMALL, RISK_MCAP_MID,

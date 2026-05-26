@@ -2,8 +2,8 @@
 
 import requests
 
-from tstock.utils import safe_float
-from tstock.constants import HTTP_TIMEOUT_TENCENT
+from tstock_lib.utils import safe_float
+from tstock_lib.constants import HTTP_TIMEOUT_TENCENT
 
 
 def get_valuation_from_tencent(code: str) -> dict:

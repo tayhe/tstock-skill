@@ -6,8 +6,8 @@ from typing import Any, Dict
 
 import akshare as ak
 
-from tstock.utils import safe_float
-from tstock.constants import PREMIUM_HIGH_PCT, PREMIUM_LOW_PCT, PEG_HIGH, PEG_LOW, INDUSTRY_MIN_SAMPLE
+from tstock_lib.utils import safe_float
+from tstock_lib.constants import PREMIUM_HIGH_PCT, PREMIUM_LOW_PCT, PEG_HIGH, PEG_LOW, INDUSTRY_MIN_SAMPLE
 
 from tstock_data_source.providers.akshare import fetch_spot_with_retry, winsorized_median
 from tstock_data_source.providers.dfcf import get_valuation_from_dfcf

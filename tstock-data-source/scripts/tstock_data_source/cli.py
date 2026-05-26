@@ -5,7 +5,7 @@ import json
 import sys
 from typing import Any, Dict
 
-from tstock.logging_config import setup_logging
+from tstock_lib.logging_config import setup_logging
 from tstock_data_source.snapshot import fetch_stock_snapshot
 from tstock_data_source.batch import fetch_batch, get_scope_codes
 

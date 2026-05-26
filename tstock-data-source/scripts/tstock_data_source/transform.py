@@ -2,7 +2,7 @@
 
 from typing import Any, Dict
 
-from tstock.utils import safe_float
+from tstock_lib.utils import safe_float
 
 
 def _transform_valuation_comparable(raw: Dict[str, Any]) -> Dict[str, Any]:

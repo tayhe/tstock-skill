@@ -5,7 +5,7 @@ import subprocess
 import sys
 from typing import Optional
 
-from tstock.paths import DATA_SOURCE_SCRIPT
+from tstock_lib.paths import DATA_SOURCE_SCRIPT
 
 
 def load_snapshot(

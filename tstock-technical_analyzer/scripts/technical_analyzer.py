@@ -6,12 +6,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from tstock.logging_config import setup_logging
+from tstock_lib.logging_config import setup_logging
 
 import pandas as pd
 
-from tstock.snapshot import load_snapshot
-from tstock.constants import ATR_STOP_MULTIPLIER
+from tstock_lib.snapshot import load_snapshot
+from tstock_lib.constants import ATR_STOP_MULTIPLIER
 
 
 def calc_indicators(df: pd.DataFrame):

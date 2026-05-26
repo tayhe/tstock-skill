@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
-from tstock.utils import normalize_code
+from tstock_lib.utils import normalize_code
 
 logger = logging.getLogger(__name__)
 

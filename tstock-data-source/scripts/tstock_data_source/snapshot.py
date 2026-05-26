@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-from tstock.utils import normalize_code
+from tstock_lib.utils import normalize_code
 
 from tstock_data_source.cache import load_cache, save_cache
 from tstock_data_source.providers.akshare import (

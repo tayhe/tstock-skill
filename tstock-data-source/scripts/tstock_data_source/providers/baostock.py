@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 import pandas as pd
 
-from tstock.utils import safe_float, to_bs_code
+from tstock_lib.utils import safe_float, to_bs_code
 
 try:
     import baostock as bs

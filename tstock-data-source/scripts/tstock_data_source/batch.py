@@ -7,8 +7,8 @@ from typing import Any, Dict, List
 
 import akshare as ak
 
-from tstock.utils import normalize_code
-from tstock.constants import BATCH_SLEEP
+from tstock_lib.utils import normalize_code
+from tstock_lib.constants import BATCH_SLEEP
 
 from tstock_data_source.snapshot import SCHEMA_VERSION, fetch_stock_snapshot
 

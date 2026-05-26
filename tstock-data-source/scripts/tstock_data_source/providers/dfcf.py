@@ -10,8 +10,8 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent.parent))
 import config
 
-from tstock.utils import safe_float
-from tstock.constants import HTTP_TIMEOUT_DFCF
+from tstock_lib.utils import safe_float
+from tstock_lib.constants import HTTP_TIMEOUT_DFCF
 
 logger = logging.getLogger(__name__)
 
