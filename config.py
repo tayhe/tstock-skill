@@ -24,7 +24,7 @@ TAVILY_SEARCH = SEARCH_SKILLS_ROOT / "tavily-search-1-0-0/scripts/search.mjs"
 # 用于 tstock-data-source 的数据增强（行业估值、研报、经营数据）
 IWENCAI_SKILLS_ROOT = Path(os.environ.get(
     "IWENCAI_SKILLS_ROOT",
-    str(Path.home() / "Projects/iwencai-skills"),
+    str(Path.home() / ".agents/skills/iwencai-skills"),
 ))
 
 # ── 东方财富系列（financial-data、financial-search、select-stock）────────────
@@ -32,7 +32,7 @@ IWENCAI_SKILLS_ROOT = Path(os.environ.get(
 # 保留此配置以便后续集成 eastmoney-financial-search 等本地技能
 EASTMONEY_SKILLS_ROOT = Path(os.environ.get(
     "EASTMONEY_SKILLS_ROOT",
-    str(Path.home() / "Projects/eastmoney-skills"),
+    str(Path.home() / ".agents/skills/eastmoney-skills"),
 ))
 
 # ── 本地数据路径 ──────────────────────────────────────────────────────────────

@@ -101,8 +101,8 @@ All external paths and API keys are centralized in `config.py`. Priority: env va
 
 **External skill paths:**
 - `SEARCH_SKILLS_ROOT` — minimax-web-search, tavily-search (defaults to `~/.openclaw/skills`)
-- `IWENCAI_SKILLS_ROOT` — 同花顺系列 (defaults to `~/Projects/iwencai-skills`)
-- `EASTMONEY_SKILLS_ROOT` — 东方财富系列 (defaults to `~/Projects/eastmoney-skills`)
+- `IWENCAI_SKILLS_ROOT` — 同花顺系列 (defaults to `~/.agents/skills/iwencai-skills`)
+- `EASTMONEY_SKILLS_ROOT` — 东方财富系列 (defaults to `~/.agents/skills/eastmoney-skills`)
 
 **Output paths:**
 - `TSTOCK_REPORT_DIR` — 分析报告输出目录 (defaults to `{project_root}/memory/股票分析`)
