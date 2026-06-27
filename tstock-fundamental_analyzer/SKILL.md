@@ -45,8 +45,8 @@ python scripts/fundamental_analyzer.py --snapshot /tmp/300308_snapshot.json --ou
 定性分析（宏观/行业/公司）采用**级联搜索**：
 
 ```
-minimax-web-search（首选）
-  → 中文搜索效果好，无需 API Key
+mmx search query（首选，通过 mmx-cli 调用）
+  → 中文搜索效果好，需 MINIMAX_API_KEY
   → 直接返回中文内容
   ↓ 失败或结果不足时
 tavily-search（备选）

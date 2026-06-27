@@ -63,11 +63,11 @@ tstock_lib/ (shared library)
 
 **Path resolution**: Every script inserts the project root into `sys.path` so `tstock_lib` and `config` are importable. `data_source.py` additionally adds `scripts/` to `sys.path` for the `tstock_data_source` package. Skills live at `{project_root}/tstock-{name}/scripts/`.
 
-**External skill dependencies**: `fundamental_analyzer.py` calls `minimax-web-search` and `tavily-search` (for qualitative web research). `tstock_data_source/providers/iwencai.py` optionally calls 同花顺 skills. Each series has its own root variable in `config.py`, overridable via `SEARCH_SKILLS_ROOT`, `IWENCAI_SKILLS_ROOT`, and `EASTMONEY_SKILLS_ROOT` env vars.
+**External skill dependencies**: `fundamental_analyzer.py` calls `mmx search query` (minimax web search via mmx-cli) and `tavily-search` (for qualitative web research). `tstock_data_source/providers/iwencai.py` optionally calls 同花顺 skills. Each series has its own root variable in `config.py`, overridable via `SEARCH_SKILLS_ROOT`, `IWENCAI_SKILLS_ROOT`, and `EASTMONEY_SKILLS_ROOT` env vars.
 
 **Data source priority**: 东方财富 (PE/PB/PEG/industry, needs `EASTMONEY_APIKEY`, free tier 150 calls/day) → AkShare (spot行情+行业均值) → Baostock (财务备份) → 腾讯 (PE/PB兜底). 同花顺为可选增强（行业分类、研报、经营数据）。东方财富限流时自动降级到同花顺/AkShare/腾讯。同花顺行业估值通过 iwencai skills 获取，需 `IWENCAI_API_KEY`。
 
-**Qualitative search cascade** (fundamental_analyzer): `minimax-web-search` (preferred, good Chinese support) → `tavily-search` (fallback). `eastmoney-financial-search` is called separately for precise financial queries.
+**Qualitative search cascade** (fundamental_analyzer): `mmx search query` (preferred, minimax via mmx-cli) → `tavily-search` (fallback). `eastmoney-financial-search` is called separately for precise financial queries.
 
 **Logging**: All scripts support `--verbose` (INFO) and `--debug` (DEBUG) flags. Uses standard `logging.getLogger(__name__)`. Default level is WARNING (silent).
 
@@ -97,12 +97,12 @@ All external paths and API keys are centralized in `config.py`. Priority: env va
 - `EASTMONEY_APIKEY` — 东方财富 API key (enables PE/PB/PEG + industry valuation, free tier: 150 calls/day)
 - `IWENCAI_API_KEY` — 同花顺 API key (enables industry data, reports, business data)
 - `IWENCAI_BASE_URL` — 同花顺 API 地址 (defaults to `https://openapi.iwencai.com`)
-- `MINIMAX_API_KEY` — minimax-web-search API key (enables qualitative web research)
+- `MINIMAX_API_KEY` — mmx-cli (minimax) API key (enables qualitative web research)
 
 **External skill paths:**
-- `SEARCH_SKILLS_ROOT` — minimax-web-search, tavily-search (defaults to `~/.openclaw/skills`)
-- `IWENCAI_SKILLS_ROOT` — 同花顺系列 (defaults to `~/.agents/skills/iwencai-skills`)
-- `EASTMONEY_SKILLS_ROOT` — 东方财富系列 (defaults to `~/.agents/skills/eastmoney-skills`)
+- `SEARCH_SKILLS_ROOT` — mmx-cli (minimax), tavily-search (defaults to `~/.openclaw/skills`)
+- `IWENCAI_SKILLS_ROOT` — 同花顺系列 (defaults to `~/.openclaw/skills/iwencai-skills`)
+- `EASTMONEY_SKILLS_ROOT` — 东方财富系列 (defaults to `~/.openclaw/skills/eastmoney-skills`)
 
 **Output paths:**
 - `TSTOCK_REPORT_DIR` — 分析报告输出目录 (defaults to `{project_root}/memory/股票分析`)

@@ -10,21 +10,22 @@
 from pathlib import Path
 import os
 
-# ── 搜索系列（minimax-web-search、tavily-search）───────────────────────────
+# ── 搜索系列（mmx-cli、tavily-search）──────────────────────────────────────
 # 用于 tstock-fundamental_analyzer 的定性信息搜索
 SEARCH_SKILLS_ROOT = Path(os.environ.get(
     "SEARCH_SKILLS_ROOT",
     str(Path.home() / ".openclaw/skills"),
 ))
 
-MINIMAX_WEB_SEARCH = SEARCH_SKILLS_ROOT / "minimax-web-search/scripts/web_search.py"
+# minimax 搜索已迁移到 mmx-cli（npm 全局安装），通过 `mmx search query` 调用
+MINIMAX_WEB_SEARCH = "mmx"
 TAVILY_SEARCH = SEARCH_SKILLS_ROOT / "tavily-search-1-0-0/scripts/search.mjs"
 
 # ── 同花顺系列（行业数据查询、研报搜索、公司经营数据查询）────────────────────
 # 用于 tstock-data-source 的数据增强（行业估值、研报、经营数据）
 IWENCAI_SKILLS_ROOT = Path(os.environ.get(
     "IWENCAI_SKILLS_ROOT",
-    str(Path.home() / ".agents/skills/iwencai-skills"),
+    str(Path.home() / ".openclaw/skills/iwencai-skills"),
 ))
 
 # ── 东方财富系列（financial-data、financial-search、select-stock）────────────
@@ -32,7 +33,7 @@ IWENCAI_SKILLS_ROOT = Path(os.environ.get(
 # 保留此配置以便后续集成 eastmoney-financial-search 等本地技能
 EASTMONEY_SKILLS_ROOT = Path(os.environ.get(
     "EASTMONEY_SKILLS_ROOT",
-    str(Path.home() / ".agents/skills/eastmoney-skills"),
+    str(Path.home() / ".openclaw/skills/eastmoney-skills"),
 ))
 
 # ── 本地数据路径 ──────────────────────────────────────────────────────────────

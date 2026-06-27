@@ -43,7 +43,7 @@ uv run python tstock-workflow/scripts/workflow.py 300308
 | `EASTMONEY_APIKEY` | 东方财富 PE/PB/PEG 及行业估值（免费版每日 150 次） | [marketing.dfcfs.com](https://marketing.dfcfs.com/) |
 | `IWENCAI_BASE_URL` | 同花顺 API 地址 | 默认 `https://openapi.iwencai.com` |
 | `IWENCAI_API_KEY` | 同花顺行业数据、研报、经营数据 | [iwencai.com](https://www.iwencai.com/) |
-| `MINIMAX_API_KEY` | minimax-web-search 定性信息搜索 | [minimaxi.com](https://www.minimaxi.com/) |
+| `MINIMAX_API_KEY` | mmx-cli (minimax) 定性信息搜索 | [minimaxi.com](https://www.minimaxi.com/) |
 
 不设置时相关功能自动降级跳过，不影响其他模块运行。东方财富 API 限流时也会自动降级到 AkShare/腾讯。
 
@@ -51,9 +51,9 @@ uv run python tstock-workflow/scripts/workflow.py 300308
 
 | 变量 | 用途 | 默认值 |
 |------|------|--------|
-| `SEARCH_SKILLS_ROOT` | 搜索系列（minimax-web-search、tavily-search） | `~/.openclaw/skills` |
-| `IWENCAI_SKILLS_ROOT` | 同花顺系列（行业数据、研报、经营数据） | `~/.agents/skills/iwencai-skills` |
-| `EASTMONEY_SKILLS_ROOT` | 东方财富系列（financial-data、financial-search、select-stock） | `~/.agents/skills/eastmoney-skills` |
+| `SEARCH_SKILLS_ROOT` | 搜索系列（mmx-cli、tavily-search） | `~/.openclaw/skills` |
+| `IWENCAI_SKILLS_ROOT` | 同花顺系列（行业数据、研报、经营数据） | `~/.openclaw/skills/iwencai-skills` |
+| `EASTMONEY_SKILLS_ROOT` | 东方财富系列（financial-data、financial-search、select-stock） | `~/.openclaw/skills/eastmoney-skills` |
 
 各系列可指向不同路径，互不影响。
 
@@ -157,7 +157,7 @@ tstock-skills/
 
 | 优先级 | 工具 | 适用场景 | 优点 |
 |--------|------|---------|------|
-| **首选** | `minimax-web-search` | 通用中文搜索 | 中文支持好，需 `MINIMAX_API_KEY` |
+| **首选** | `mmx search query` | 通用中文搜索 | 中文支持好，需 `MINIMAX_API_KEY`，通过 mmx-cli 调用 |
 | **备选** | `tavily-search` | 英文研报/国际信息 | 通用 AI 搜索，提供英文研报中文化 |
 
 > `eastmoney-financial-search` 定向查询公告/研报/政策，不纳入级联搜索。有精准金融查询需求时**单独调用**。

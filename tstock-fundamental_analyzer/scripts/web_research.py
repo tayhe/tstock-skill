@@ -19,17 +19,21 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _search_with_minimax(query: str) -> str:
-    script = config.MINIMAX_WEB_SEARCH
-    if not os.path.exists(script):
-        return ''
+    cmd = config.MINIMAX_WEB_SEARCH
     try:
         env = {**os.environ, 'MINIMAX_API_KEY': config.MINIMAX_API_KEY}
         p = subprocess.run(
-            ['python3', str(script), query],
+            [cmd, 'search', 'query', '--q', query, '--output', 'text', '--quiet'],
             capture_output=True, text=True, timeout=60,
             env=env
         )
-        return p.stdout if p.returncode == 0 else ''
+        if p.returncode != 0:
+            logger.debug("mmx search returned %d: %s", p.returncode, p.stderr[:200])
+            return ''
+        return p.stdout
+    except FileNotFoundError:
+        logger.debug("mmx CLI not found, falling back to tavily")
+        return ''
     except Exception as e:
         logger.debug("minimax search failed: %s", e)
         return ''
