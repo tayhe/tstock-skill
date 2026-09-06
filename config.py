@@ -10,6 +10,9 @@
 from pathlib import Path
 import os
 
+# 项目根目录（基于 config.py 所在位置推导）
+PROJECT_ROOT = Path(__file__).resolve().parent
+
 # ── 搜索系列（mmx-cli、tavily-search）──────────────────────────────────────
 # 用于 tstock-fundamental_analyzer 的定性信息搜索
 SEARCH_SKILLS_ROOT = Path(os.environ.get(
@@ -23,10 +26,16 @@ TAVILY_SEARCH = SEARCH_SKILLS_ROOT / "tavily-search-1-0-0/scripts/search.mjs"
 
 # ── 同花顺系列（行业数据查询、研报搜索、公司经营数据查询）────────────────────
 # 用于 tstock-data-source 的数据增强（行业估值、研报、经营数据）
-IWENCAI_SKILLS_ROOT = Path(os.environ.get(
-    "IWENCAI_SKILLS_ROOT",
-    str(Path.home() / ".openclaw/skills/iwencai-skills"),
-))
+def _resolve_iwencai_root() -> Path:
+    env_path = os.environ.get("IWENCAI_SKILLS_ROOT")
+    if env_path:
+        return Path(env_path)
+    local_path = PROJECT_ROOT.parent / "skills-from-net" / "iwencai-skills"
+    if local_path.exists():
+        return local_path
+    return Path.home() / ".openclaw/skills/iwencai-skills"
+
+IWENCAI_SKILLS_ROOT = _resolve_iwencai_root()
 
 # ── 东方财富系列（financial-data、financial-search、select-stock）────────────
 # 当前代码通过 HTTP API 直接调用东方财富，未调用本地脚本
@@ -37,8 +46,6 @@ EASTMONEY_SKILLS_ROOT = Path(os.environ.get(
 ))
 
 # ── 本地数据路径 ──────────────────────────────────────────────────────────────
-# 项目根目录（基于 config.py 所在位置推导）
-PROJECT_ROOT = Path(__file__).resolve().parent
 
 # 分析报告输出目录
 REPORT_DIR = Path(os.environ.get(

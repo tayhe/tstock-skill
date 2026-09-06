@@ -21,12 +21,16 @@ def _find_iwencai_skill_dir(skill_subdir: str) -> str:
     p = config.IWENCAI_SKILLS_ROOT / skill_subdir
     if not p.exists():
         return ""
-    cli = p / "scripts" / "cli.py"
-    if cli.exists():
-        return str(cli)
+    for name in ("cli.py", "report_search.py"):
+        cli = p / "scripts" / name
+        if cli.exists():
+            return str(cli)
     for sub in p.iterdir():
-        if sub.is_dir() and (sub / "scripts" / "cli.py").exists():
-            return str(sub / "scripts" / "cli.py")
+        if sub.is_dir():
+            for name in ("cli.py", "report_search.py"):
+                candidate = sub / "scripts" / name
+                if candidate.exists():
+                    return str(candidate)
     return ""
 
 
@@ -150,10 +154,21 @@ def get_iwencai_enrichment(code: str, company_name: str = "", industry_name: str
 
     # 2) 最新研报
     if cli["reports"] and company_name:
-        text = _call_iwencai_skill(cli["reports"], company_name, extra_args=["-f", "text", "-l", "3"], as_text=True)
-        if text and isinstance(text, str):
-            reports = []
-            blocks = re.split(r"\n(?=\d+\.\s)", text.strip())
+        resp = _call_iwencai_skill(cli["reports"], company_name, extra_args=["--limit", "3"])
+        reports = []
+        if isinstance(resp, dict):
+            articles = resp.get("data", [])
+            for item in articles[:3]:
+                if isinstance(item, dict):
+                    reports.append({
+                        "title": item.get("title", "").strip(),
+                        "url": item.get("url", "").strip(),
+                        "summary": item.get("summary", "").strip(),
+                        "publish_time": (item.get("publish_date") or item.get("publish_time") or "").strip(),
+                    })
+        elif isinstance(resp, str) and resp.strip():
+            # 兼容旧版纯文本输出
+            blocks = re.split(r"\n(?=\d+\.\s)", resp.strip())
             for block in blocks[:3]:
                 title_m = re.search(r"^\d+\.\s+(.+)$", block, re.MULTILINE)
                 url_m = re.search(r"原文链接:\s*(.+)", block)
@@ -166,8 +181,8 @@ def get_iwencai_enrichment(code: str, company_name: str = "", industry_name: str
                         "summary": summary_m.group(1).strip() if summary_m else "",
                         "publish_time": time_m.group(1).strip() if time_m else "",
                     })
-            if reports:
-                out["reports"] = {"items": reports, "_source": "iwencai.research_report"}
+        if reports:
+            out["reports"] = {"items": reports, "_source": "iwencai.research_report"}
 
     # 3) 公司经营数据
     if cli["business"] and company_name:

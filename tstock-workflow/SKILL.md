@@ -1,3 +1,8 @@
+---
+name: tstock-workflow
+description: TStock Alpha 兼容入口编排器，负责 A 股全流程分析的编排，串联调用 tstock-data-source、tstock-fundamental_analyzer、tstock-technical_analyzer、tstock-risk_analyzer 与 tstock-portfolio。
+---
+
 # TStock Alpha（Orchestrator）
 
 该 Skill 已升级为**兼容入口编排器**，不再承载具体分析逻辑。
