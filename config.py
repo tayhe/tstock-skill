@@ -15,10 +15,16 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 # ── 搜索系列（mmx-cli、tavily-search）──────────────────────────────────────
 # 用于 tstock-fundamental_analyzer 的定性信息搜索
-SEARCH_SKILLS_ROOT = Path(os.environ.get(
-    "SEARCH_SKILLS_ROOT",
-    str(Path.home() / ".openclaw/skills"),
-))
+def _resolve_search_skills_root() -> Path:
+    env_path = os.environ.get("SEARCH_SKILLS_ROOT")
+    if env_path:
+        return Path(env_path)
+    local_path = PROJECT_ROOT.parent / "skills-from-net"
+    if (local_path / "tavily-search-1-0-0").exists():
+        return local_path
+    return Path.home() / ".openclaw/skills"
+
+SEARCH_SKILLS_ROOT = _resolve_search_skills_root()
 
 # minimax 搜索已迁移到 mmx-cli（npm 全局安装），通过 `mmx search query` 调用
 MINIMAX_WEB_SEARCH = "mmx"
@@ -40,10 +46,16 @@ IWENCAI_SKILLS_ROOT = _resolve_iwencai_root()
 # ── 东方财富系列（financial-data、financial-search、select-stock）────────────
 # 当前代码通过 HTTP API 直接调用东方财富，未调用本地脚本
 # 保留此配置以便后续集成 eastmoney-financial-search 等本地技能
-EASTMONEY_SKILLS_ROOT = Path(os.environ.get(
-    "EASTMONEY_SKILLS_ROOT",
-    str(Path.home() / ".openclaw/skills/eastmoney-skills"),
-))
+def _resolve_eastmoney_root() -> Path:
+    env_path = os.environ.get("EASTMONEY_SKILLS_ROOT")
+    if env_path:
+        return Path(env_path)
+    local_path = PROJECT_ROOT.parent / "skills-from-net" / "eastmoney-skills"
+    if local_path.exists():
+        return local_path
+    return Path.home() / ".openclaw/skills/eastmoney-skills"
+
+EASTMONEY_SKILLS_ROOT = _resolve_eastmoney_root()
 
 # ── 本地数据路径 ──────────────────────────────────────────────────────────────
 
