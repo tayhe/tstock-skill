@@ -56,7 +56,7 @@ def get_market_from_bs(code: str, days: int = 150) -> Dict[str, Any]:
         start_date = (datetime.now() - timedelta(days=days + 30)).strftime('%Y-%m-%d')
         rs = bs.query_history_k_data_plus(
             to_bs_code(code),
-            "date,code,open,high,low,close,volume,amount",
+            "date,code,open,high,low,close,volume,amount,turn",
             start_date=start_date,
             end_date=end_date,
             frequency='d'
@@ -66,8 +66,8 @@ def get_market_from_bs(code: str, days: int = 150) -> Dict[str, Any]:
             rows.append(rs.get_row_data())
         if not rows:
             return {}
-        df = pd.DataFrame(rows, columns=["日期", "代码", "开盘", "最高", "最低", "收盘", "成交量", "成交额"])
-        for c in ["开盘", "最高", "最低", "收盘", "成交量", "成交额"]:
+        df = pd.DataFrame(rows, columns=["日期", "代码", "开盘", "最高", "最低", "收盘", "成交量", "成交额", "换手率"])
+        for c in ["开盘", "最高", "最低", "收盘", "成交量", "成交额", "换手率"]:
             df[c] = pd.to_numeric(df[c], errors='coerce')
         latest = df.iloc[-1]
         prev = df.iloc[-2] if len(df) > 1 else latest

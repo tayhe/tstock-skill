@@ -249,6 +249,25 @@ def _render_technical(tech: dict) -> list[str]:
         atr_pct = round(atr / close * 100, 2)
         lines.append(f"| ATR（14日） | {round(atr, 3)}（约现价 {atr_pct}%） |")
     lines.append("")
+
+    chips = tech.get("chip_distribution")
+    if chips:
+        lines.append("**筹码分布（CYQ）**")
+        lines.append("")
+        lines.append("| 指标 | 数值 | 说明 |")
+        lines.append("|------|------|------|")
+        pr = chips.get("profit_ratio")
+        pr_str = f"{round(pr * 100, 1)}%" if pr is not None else "N/A"
+        lines.append(f"| 获利盘比例 | {pr_str} | >85% 预警高位抛压，<10% 评估超跌反弹 |")
+        lines.append(f"| 平均持仓成本 | {chips.get('avg_cost', 'N/A')} 元 | 全市场加权持仓均价 |")
+        c90 = chips.get("cost_90") or []
+        lines.append(f"| 90% 筹码区间 | [{c90[0] if len(c90)>0 else 'N/A'}, {c90[1] if len(c90)>1 else 'N/A'}] | 主力筹码聚集区间 |")
+        conc90 = chips.get("concentration_90")
+        conc_str = f"{round(conc90, 4)}" if conc90 is not None else "N/A"
+        lines.append(f"| 筹码集中度 (90%) | {conc_str} | <0.08 为单峰高度密集 |")
+        lines.append(f"| 筹码主峰价格 | {chips.get('peak_price', 'N/A')} 元 | 密集峰值最高价位 |")
+        lines.append("")
+
     return lines
 
 

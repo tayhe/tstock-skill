@@ -123,6 +123,19 @@ def analyze(snapshot):
     atr = float(last['atr14']) if pd.notna(last['atr14']) else None
     stop_ref = (close - ATR_STOP_MULTIPLIER * atr) if atr else None
 
+    # 筹码分布指标评估 (若快照中存在)
+    chips = snapshot.get('chip_distribution')
+    if chips:
+        profit_ratio = chips.get('profit_ratio')
+        conc_90 = chips.get('concentration_90')
+        if profit_ratio is not None:
+            if profit_ratio > 0.85:
+                signal.append('筹码获利盘>85%(注意高位抛压/止盈)')
+            elif profit_ratio < 0.10:
+                signal.append('筹码获利盘<10%(处于超跌反弹区间)')
+        if conc_90 is not None and conc_90 < 0.08:
+            signal.append('筹码高度集中(单峰密集/变盘信号)')
+
     return {
         'code': snapshot.get('code'),
         'name': snapshot.get('basic', {}).get('name'),
@@ -133,6 +146,7 @@ def analyze(snapshot):
         'macd_hist': macd_hist,
         'kdj': {'k': k, 'd': d, 'j': j},
         'boll': {'up': boll_up, 'mid': boll_mid, 'dn': boll_dn},
+        'chip_distribution': chips,
         'support_20d': support,
         'resistance_20d': resistance,
         'atr14': atr,

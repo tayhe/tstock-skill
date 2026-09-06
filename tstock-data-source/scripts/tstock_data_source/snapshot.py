@@ -10,6 +10,12 @@ from tstock_data_source.cache import load_cache, save_cache
 from tstock_data_source.providers.akshare import (
     get_basic_from_ak, get_market_from_ak, get_valuation, get_financial,
 )
+from tstock_data_source.providers.astock import (
+    fetch_realtime_quote, get_basic_from_astock, get_market_quote_from_astock,
+    fetch_concept_blocks, fetch_holder_num_change, fetch_dividend_history,
+    fetch_margin_trading, fetch_dragon_tiger_board, fetch_chip_distribution,
+    fetch_financial_reports,
+)
 from tstock_data_source.providers.baostock import get_basic_from_bs, get_market_from_bs, get_baostock_financial
 from tstock_data_source.providers.iwencai import get_iwencai_enrichment
 from tstock_data_source.valuation import get_valuation_stable
@@ -48,15 +54,28 @@ def fetch_stock_snapshot(code: str, data_type: str = "core", years: int = 3, use
         "data_type": data_type,
     }
 
-    # basic
+    # 1. basic
     basic = {}
+    # 首选 a-stock-data（腾讯直连行情 + 东财概念板块，毫秒级，不封IP）
     try:
-        basic = get_basic_from_ak(code)
-        if basic:
-            sources.append("akshare")
+        basic = get_basic_from_astock(code)
+        if basic and basic.get("name"):
+            sources.append("astock")
     except Exception as e:
-        errors.append(f"basic.akshare: {e}")
-        logger.warning("basic.akshare failed for %s: %s", code, e)
+        errors.append(f"basic.astock: {e}")
+        logger.warning("basic.astock failed for %s: %s", code, e)
+
+    # 备选 AkShare
+    if not basic:
+        try:
+            basic = get_basic_from_ak(code)
+            if basic:
+                sources.append("akshare")
+        except Exception as e:
+            errors.append(f"basic.akshare: {e}")
+            logger.warning("basic.akshare failed for %s: %s", code, e)
+
+    # 兜底 Baostock
     if not basic:
         try:
             basic = get_basic_from_bs(code)
@@ -67,8 +86,9 @@ def fetch_stock_snapshot(code: str, data_type: str = "core", years: int = 3, use
             logger.warning("basic.baostock failed for %s: %s", code, e)
     snapshot["basic"] = basic
 
-    # market
+    # 2. market
     market = {}
+    # 首选 AkShare 获取完整历史 price_data（若网络可用）
     try:
         market = get_market_from_ak(code)
         if market and "akshare" not in sources:
@@ -76,6 +96,8 @@ def fetch_stock_snapshot(code: str, data_type: str = "core", years: int = 3, use
     except Exception as e:
         errors.append(f"market.akshare: {e}")
         logger.warning("market.akshare failed for %s: %s", code, e)
+
+    # 次选 Baostock
     if not market:
         try:
             market = get_market_from_bs(code)
@@ -84,9 +106,74 @@ def fetch_stock_snapshot(code: str, data_type: str = "core", years: int = 3, use
         except Exception as e:
             errors.append(f"market.baostock: {e}")
             logger.warning("market.baostock failed for %s: %s", code, e)
+
+    # 兜底 astock 实时行情（当 akshare 与 baostock 均超时或无历史时确保行情不为空）
+    if not market:
+        try:
+            market = get_market_quote_from_astock(code)
+            if market and "astock" not in sources:
+                sources.append("astock")
+        except Exception as e:
+            errors.append(f"market.astock: {e}")
+            logger.warning("market.astock failed for %s: %s", code, e)
     snapshot["market"] = market
 
+    # 筹码分布计算 (若已有日K线数据)
+    if market.get("price_data"):
+        try:
+            import pandas as pd
+            raw_bars = market["price_data"]
+            df_bars = pd.DataFrame(raw_bars)
+            col_map = {
+                "日期": "date", "最高": "high", "最低": "low", "收盘": "close", "换手率": "turn",
+                "date": "date", "high": "high", "low": "low", "close": "close", "turn": "turn",
+            }
+            df_renamed = df_bars.rename(columns=col_map)
+            if "turn" not in df_renamed.columns and "成交量" in df_bars.columns and basic.get("float_shares"):
+                df_renamed["turn"] = df_bars["成交量"] / basic["float_shares"] * 100.0
+            if {"date", "high", "low", "close", "turn"}.issubset(df_renamed.columns):
+                chip_info = fetch_chip_distribution(df_renamed)
+                if chip_info:
+                    snapshot["chip_distribution"] = chip_info
+                    if "astock" not in sources:
+                        sources.append("astock")
+        except Exception as e:
+            logger.debug("chip_distribution calculation skipped for %s: %s", code, e)
+
     if data_type in ("core", "all"):
+        # a-stock-data 实时行情与微观结构数据
+        try:
+            rt = fetch_realtime_quote(code)
+            if rt:
+                snapshot["realtime_quote"] = rt
+                if "astock" not in sources:
+                    sources.append("astock")
+        except Exception as e:
+            logger.debug("fetch_realtime_quote failed for %s: %s", code, e)
+
+        try:
+            micro = {}
+            cb = fetch_concept_blocks(code)
+            if cb.get("concept_tags"):
+                micro["concept_tags"] = cb.get("concept_tags")
+                micro["industry"] = cb.get("industry")
+            holders = fetch_holder_num_change(code, page_size=5)
+            if holders:
+                micro["holder_num_history"] = holders
+            margins = fetch_margin_trading(code, page_size=5)
+            if margins:
+                micro["margin_trading"] = margins
+            divs = fetch_dividend_history(code, page_size=5)
+            if divs:
+                micro["dividend_history"] = divs
+
+            if micro:
+                snapshot["microstructure"] = micro
+                if "astock" not in sources:
+                    sources.append("astock")
+        except Exception as e:
+            errors.append(f"microstructure.astock: {e}")
+            logger.info("astock microstructure unavailable for %s: %s", code, e)
         try:
             snapshot["valuation"] = get_valuation(code)
             if snapshot["valuation"] and "akshare" not in sources:
@@ -121,13 +208,30 @@ def fetch_stock_snapshot(code: str, data_type: str = "core", years: int = 3, use
             logger.info("iwencai enrichment unavailable for %s: %s", code, e)
 
     if data_type in ("financial", "all"):
+        financial = {}
+        # 首选 a-stock-data 新浪财报（单次请求，毫秒级响应，避免 AkShare 历史全量翻页）
         try:
-            snapshot["financial"] = get_financial(code, years=years)
-            if snapshot["financial"] and "akshare" not in sources:
-                sources.append("akshare")
+            financial = fetch_financial_reports(code, years=years)
+            if financial and (financial.get("income_statement") or financial.get("balance_sheet")):
+                if "astock" not in sources:
+                    sources.append("astock")
+            else:
+                financial = {}
         except Exception as e:
-            errors.append(f"financial.akshare: {e}")
-            logger.warning("financial.akshare failed for %s: %s", code, e)
+            errors.append(f"financial.astock: {e}")
+            logger.warning("financial.astock failed for %s: %s", code, e)
+
+        # 备选 AkShare
+        if not financial:
+            try:
+                financial = get_financial(code, years=years)
+                if financial and "akshare" not in sources:
+                    sources.append("akshare")
+            except Exception as e:
+                errors.append(f"financial.akshare: {e}")
+                logger.warning("financial.akshare failed for %s: %s", code, e)
+
+        snapshot["financial"] = financial
 
         try:
             bao = get_baostock_financial(code)

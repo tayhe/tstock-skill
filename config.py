@@ -57,6 +57,20 @@ def _resolve_eastmoney_root() -> Path:
 
 EASTMONEY_SKILLS_ROOT = _resolve_eastmoney_root()
 
+# ── 上游 a-stock-data 路径 ──────────────────────────────────────────────────
+# 用于复用高质量 A 股底层数据提取函数（行情、龙虎榜、股东户数、筹码分布等）
+def _resolve_astock_data_root() -> Path:
+    env_path = os.environ.get("ASTOCK_DATA_ROOT")
+    if env_path:
+        return Path(env_path)
+    # 优先查找上游 upstream 目录
+    upstream_path = PROJECT_ROOT.parent.parent / "upstream" / "a-stock-data"
+    if upstream_path.exists():
+        return upstream_path
+    return Path.home() / "Projects" / "upstream" / "a-stock-data"
+
+ASTOCK_DATA_ROOT = _resolve_astock_data_root()
+
 # ── 本地数据路径 ──────────────────────────────────────────────────────────────
 
 # 分析报告输出目录

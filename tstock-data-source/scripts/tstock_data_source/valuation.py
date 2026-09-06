@@ -87,33 +87,7 @@ def get_valuation_stable(code: str, industry_name: str = "") -> Dict[str, Any]:
         if out["industry_avg"].get("pe") is None and out["industry_avg"].get("pe_median") is None:
             _supplement_industry_from_spot(out, code, industry_name)
     else:
-        # 备源1：Akshare 实时行情
-        spot = fetch_spot_with_retry()
-        if spot is not None and not spot.empty:
-            try:
-                row = spot[spot["代码"].astype(str) == str(code)]
-                if not row.empty:
-                    r = row.iloc[0]
-                    out["pe_ttm"] = out["pe_ttm"] if out["pe_ttm"] is not None else safe_float(r.get("市盈率-动态"))
-                    out["pb"] = out["pb"] if out["pb"] is not None else safe_float(r.get("市净率"))
-                    out["pr"] = out["pr"] if out["pr"] is not None else safe_float(r.get("市销率"))
-                    if not industry_name:
-                        industry_name = str(r.get("行业", "") or "")
-
-                if industry_name and "行业" in spot.columns:
-                    g = spot[spot["行业"].astype(str) == industry_name].copy()
-                    out["sample_size"] = int(len(g))
-                    if len(g) >= INDUSTRY_MIN_SAMPLE:
-                        out["industry_avg"] = {
-                            "pe": out["industry_avg"].get("pe") or winsorized_median(g.get("市盈率-动态")),
-                            "pb": out["industry_avg"].get("pb") or winsorized_median(g.get("市净率")),
-                            "pr": out["industry_avg"].get("pr") or winsorized_median(g.get("市销率")),
-                        }
-                out["meta"]["source_used"].append("akshare.spot")
-            except Exception as e:
-                logger.debug("AkShare spot fallback failed for %s: %s", code, e)
-
-        # 备源2：腾讯补 PE/PB
+        # 备源1：腾讯补 PE/PB（毫秒级，不封IP）
         if out["pe_ttm"] is None or out["pb"] is None:
             try:
                 tencent = get_valuation_from_tencent(code)
@@ -124,6 +98,36 @@ def get_valuation_stable(code: str, industry_name: str = "") -> Dict[str, Any]:
                 out["meta"]["source_used"].append("tencent.qt")
             except Exception as e:
                 logger.debug("Tencent fallback failed for %s: %s", code, e)
+
+        # 备源2：Akshare 实时行情补行业均值与 PR（非必需，降级容错）
+        if out.get("sample_size", 0) < INDUSTRY_MIN_SAMPLE:
+            try:
+                spot = fetch_spot_with_retry()
+                if spot is not None and not spot.empty:
+                    row = spot[spot["代码"].astype(str) == str(code)]
+                    if not row.empty:
+                        r = row.iloc[0]
+                        if out["pe_ttm"] is None:
+                            out["pe_ttm"] = safe_float(r.get("市盈率-动态"))
+                        if out["pb"] is None:
+                            out["pb"] = safe_float(r.get("市净率"))
+                        if out["pr"] is None:
+                            out["pr"] = safe_float(r.get("市销率"))
+                        if not industry_name:
+                            industry_name = str(r.get("行业", "") or "")
+
+                    if industry_name and "行业" in spot.columns:
+                        g = spot[spot["行业"].astype(str) == industry_name].copy()
+                        out["sample_size"] = int(len(g))
+                        if len(g) >= INDUSTRY_MIN_SAMPLE:
+                            out["industry_avg"] = {
+                                "pe": out["industry_avg"].get("pe") or winsorized_median(g.get("市盈率-动态")),
+                                "pb": out["industry_avg"].get("pb") or winsorized_median(g.get("市净率")),
+                                "pr": out["industry_avg"].get("pr") or winsorized_median(g.get("市销率")),
+                            }
+                    out["meta"]["source_used"].append("akshare.spot")
+            except Exception as e:
+                logger.debug("AkShare spot fallback failed for %s: %s", code, e)
 
         # 权威校验：从财务摘要提净利润同比，计算 PEG
         if out["growth_yoy_pct"] is None:
